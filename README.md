@@ -13,13 +13,16 @@ Predict company performance for all companies in the banking industry from past 
   - Extract only the groups you need
   - Convert values to actual numbers (such statements give "all values are in thousands/millions/billions" at the top)
   - Save cleaned data to database
+
+## Apply models (in Python)
+  - Load cleaned data from database
   - Apply:
     - Time series models (in Python)
     - Ridge Regression/Lasso (in Python)
     - Random Forest/XDG regressors (in Python)
     - Neural Networks (Tensorflow) (in Python)
   
- ## Explore data (in R)
+ ## Explore data and apply models (in R)
   - Load cleaned data from database
   - Explore data to find the best set of features
   - Select and apply:
