@@ -19,7 +19,7 @@ Predict company performance for all companies in the banking industry from past 
   - Apply:
     - Time series models (in Python)
     - Ridge Regression/Lasso (in Python)
-    - Random Forest/XDG regressors (in Python)
+    - Random Forest/XGBoost regressors (in Python)
     - Neural Networks (Tensorflow) (in Python)
   
  ## Explore data and apply models (in R)
