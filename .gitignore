@@ -1,6 +1,5 @@
-# Text files contain data - ignore those
-*.txt
-*.xlsx
+# Ignore data directory
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,46 +1,64 @@
+import sys
+import json
+import selenium
+import functools
+import operator
+from decouple import config
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
+data_root = '..'
+SIC_codes = {
+    'banks': 6021, # SIC code for National Commercial Banks
+}
 
 
 def configure_browser():
     opts = Options()
-    opts.set_headless()
-    assert opts.headless
+    opts.headless = True
 
     browser = Firefox(options=opts)
+    browser.wait = WebDriverWait(browser, 5)  # Wait for 5 seconds
+                                              # on each get() request.
     return browser
 
 
-def banking_url():
-    SIC = 6021  # The SIC code for National Commercial Banks
-    banks_url = f'https://www.sec.gov/cgi-bin/browse-edgar?' \
+def get_url(sector):
+    return f'https://www.sec.gov/cgi-bin/browse-edgar?' \
         f'company=&match=&filenum=&State=&Country=&' \
-        f'SIC={SIC}&myowner=exclude&action=getcompany'
-    # print(f'banks_url: {banks_url}')
-    return banks_url
+        f'SIC={SIC_codes[sector]}&myowner=exclude&action=getcompany'
 
 
 def process_page(browser):
-    company_links_xpath = '//table[@class = "tableFile2"]/tbody/tr/td[1]/a'
-    # company_links_xpath = '//table[@class = "tableFile2"]'
-    company_links = browser.find_elements_by_xpath(company_links_xpath)
+    # Unfortunately, the page does not have id/class tags associated
+    # with anything below the table element.
+    # We can find elements by tag name, and keep only those that we need.
+    links = browser.find_elements_by_tag_name('a')
+    company_links = []
+    for link in links:
+        href = link.get_attribute('href')
+        if 'CIK=' in href:
+            company_links.append(href)
 
-    res = []
-    for link in company_links:
-        res.append(link.get_attribute('href'))
-        company_links = res
-        # print(f'company_links: {company_links}')
-
+    # XPATH search is a little slower, but there is nothing in the
+    # company name <td> element that is unique to company names,
+    # so we don't have a choice here.
     company_names_xpath = \
         '//table[@class = "tableFile2"]/tbody/tr/td[2]'
-    company_names = browser.find_elements_by_xpath(company_names_xpath)
-    res = []
-    for name in company_names:
-        res.append(name.text)
-        company_names = res
-        # print(f'company_names: {company_names}')
+    names = browser.find_elements_by_xpath(company_names_xpath)
+    company_names = []
+    for name in names:
+        company_names.append(name.text)
 
-    return zip(company_names, company_links)
+    # Extract CIK numbers from the company links
+    parts = [link.split('&') for link in company_links]  # Gives list of lists
+    parts = functools.reduce(operator.concat, parts)     # Flatten list of lists
+    CIKs = [part.split('=')[1] for part in parts if 'CIK=' in part]
+
+    return zip(CIKs, company_names, company_links)
 
 
 def all_company_pages(browser, url):
@@ -55,39 +73,54 @@ def all_company_pages(browser, url):
         button_xpath = \
             '//input[contains(@type, "button") and contains(@value,"Next 40")]'
         buttons = browser.find_elements_by_xpath(button_xpath)
-        print(f'buttons: {buttons}')
+        if len(buttons) == 0:
+            break
+
         for button in buttons:
             res = button.get_attribute('onclick')
-            print(f'res: {res}')
             if res is not None:
                 on_click = button.get_attribute('onclick')
 
         if on_click is None:
             url = None
         else:
-            print(f'on_click: {on_click}')
             after_split = on_click.split("'")
-            print(f'on_click.split: {after_split}')
             next_page_link = 'https://www.sec.gov/' + \
                 on_click.split("'")[1]
-            print(f'next_page_link: {next_page_link}')
             url = next_page_link
 
         ctr += 1
-        if ctr > 5:
+        if ctr > 2:
             break
 
+    print(f'number of pages: {ctr}')
     print(f'companies: {companies}')
     return companies
 
 
-# This is the link we have for each company:
-# https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001109525&owner=include&count=40&hidefilings=0
-# This is the link we need - the only difference is the &type=10-k is missing after the CIK:
-# https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001109525&type=10-k&dateb=&owner=include&count=40
-if __name__ == '__main__':
-    banking_companies = all_company_pages(configure_browser(), banking_url())
+def build_output(banking_companies):
+    CIKs, names, links = zip(*banking_companies)
+    CIKs = list(CIKs)     # Iterators are done once used, lists aren't.
+    names = list(names)
 
-    with open('banking_companies.txt', 'w') as f:
-        for name, link in banking_companies:
-            f.write(f'{name}: {link}\n')
+    company_links = []
+    for idx, link in enumerate(links):
+        pre, post = link.split(f'&CIK={CIKs[idx]}')
+        company_links.append(pre + post)
+
+    companies = {}
+    for idx, CIK in enumerate(CIKs):
+        companies[CIK] = {
+            'CIK': CIK,
+            'link': company_links[idx],
+            'name': names[idx]
+        }
+
+    return companies
+
+if __name__ == '__main__':
+    banking_companies = all_company_pages(configure_browser(), get_url('banks'))
+    companies = build_output(banking_companies)
+
+    with open(config('DATA_DIR') + '/' + 'banking_companies.json', 'w') as f:
+        json.dump(companies, f)
