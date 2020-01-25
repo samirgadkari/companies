@@ -1,29 +1,25 @@
+import re
 import sys
 import json
 import selenium
 import functools
 import operator
+import selenium_utils
 from decouple import config
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 
-data_root = '..'
 SIC_codes = {
     'banks': 6021, # SIC code for National Commercial Banks
 }
 
+regex_replace_chars = re.compile(r'\s|\/|\\')
 
-def configure_browser():
-    opts = Options()
-    opts.headless = True
 
-    browser = Firefox(options=opts)
-    browser.wait = WebDriverWait(browser, 5)  # Wait for 5 seconds
-                                              # on each get() request.
-    return browser
+def replace_chars(match):
+    return '_'
 
 
 def get_url(sector):
@@ -111,14 +107,18 @@ def build_output(companies_list):
         companies[CIK] = {
             'CIK': CIK,
             'link': company_links[idx],
-            'name': names[idx]
+            'name': regex_replace_chars.sub(replace_chars,
+                                            names[idx])
         }
 
     return companies
 
 if __name__ == '__main__':
-    banking_companies = all_company_pages(configure_browser(), get_url('banks'))
+    banking_companies = \
+      all_company_pages(selenium_utils.configure_browser(),
+                        get_url('banks'))
     companies = build_output(banking_companies)
 
     with open(config('DATA_DIR') + '/' + 'banking_companies.json', 'w') as f:
-        json.dump(companies, f)
+        json_str = json.dumps(companies, indent=4)
+        f.write(json_str)
