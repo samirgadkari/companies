@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import json
-import html
 import selenium_utils
 from decouple import config
 from datetime import datetime
@@ -21,15 +20,21 @@ regex_cik = re.compile(r'^\s*CENTRAL INDEX KEY:\s*(.+)$',
                                  re.MULTILINE)
 
 
+regex_replace_chars = re.compile(r'\/')
+
+
+def replace_chars(match):
+    return '-'
+
+
 def get_element(regex, data):
     matches = regex.search(data)
     if matches is not None:
-        print(f'matches.groups: {matches.groups}')
         return matches.group(1)
-    return 'None returned from match'
+    return None
 
 
-def get_filing_data(filing):
+def get_filing_data(filing, filing_type):
     part_filing = filing[:3000]
 
     try:
@@ -53,14 +58,26 @@ def get_filing_data(filing):
 
     name = get_element(regex_company_name, part_filing)
     CIK = get_element(regex_cik, part_filing)
-    return (CIK, { 'CIK': CIK,
-             'name': name,
-             'period_starting': period_starting,
-             'period_ending': period_ending,
-             'filing': filing })
+    filing_data = { 'CIK': CIK,
+                    'name': name,
+                    'period_starting': period_starting,
+                    'period_ending': period_ending,
+                    'filing': filing,
+                    'filing_type': regex_replace_chars.sub(replace_chars,
+                                                           filing_type)}
+    print(f"filing_data['period_starting']: {filing_data['period_starting']}")
+    print(f"filing_data['period_ending']: {filing_data['period_ending']}")
+    print(f"filing_data['filing_type']: {filing_data['filing_type']}")
+    return filing_data
 
 
 def process_page(browser):
+    tds = browser.find_elements_by_xpath("//td[contains(text(), '10-K')]")
+    if len(tds) == 0:
+        return
+
+    filing_types = [e.text for e in tds]
+
     elements = list(browser.find_elements_by_id('documentsbutton'))
     sec_root = config('SEC_ROOT')
 
@@ -69,10 +86,9 @@ def process_page(browser):
         return
 
     hrefs = [e.get_attribute('href') for e in elements]
-    elements_hrefs = zip(elements, hrefs)
-    print(f'elements_hrefs: {elements_hrefs}')
-    company_filings = {}
-    for (e, href) in elements_hrefs:
+    elements_data = zip(elements, filing_types, hrefs)
+    company_filings = []
+    for (e, filing_type, href) in elements_data:
         if href[:8] != 'https://':
             href = sec_root + '/' + href
         print(f'Getting page at link: {href}')
@@ -89,11 +105,8 @@ def process_page(browser):
         selenium_utils.browser_sleep(5, 7)
 
         filing = browser.page_source
-        CIK, filing_data = get_filing_data(filing)
-        company_filings[CIK] = filing_data
-
-        print(f'1 company_filings[CIK]["period_starting"]: '
-              f'{company_filings[CIK]["period_starting"]}')
+        filing_data = get_filing_data(filing, filing_type)
+        company_filings.append(filing_data)
 
         # Sleep for a random interval between the given number of seconds
         selenium_utils.browser_sleep(3, 5)
@@ -117,31 +130,25 @@ def get_10Ks(companies):
         browser.get(url)
         company_filings = process_page(browser)
         ctr = 0
-        if company_filings is not None:
-            for CIK, filing_data in company_filings.items():
-                print(f'2 filing_data["period_starting"]:'
-                      f'{filing_data["period_starting"]}')
+        if (company_filings is not None) and \
+           (len(company_filings) > 0):
+            for filing_data in company_filings:
 
-                name = html.unescape(filing_data['name'])
-                period_starting = str(filing_data['period_starting'])
-                period_ending = str(filing_data['period_ending'])
-                print(f'config("DATA_DIR"): {config("DATA_DIR")}')
+                name = filing_data['name']
+                period_starting = filing_data['period_starting']
+                period_ending = filing_data['period_ending']
+                filing_type = filing_data['filing_type']
                 filename = \
                         os.path.join(d_10k,
                                      period_starting + '_' +
-                                     period_ending)
+                                     period_ending + '_' +
+                                     filing_type)
                 with open(filename, 'w') as f:
-                    # header = f'CIK: {CIK}\n' \
-                    #          f'period_starting: {period_starting}\n' \
-                    #          f'period_ending: {period_ending}\n' \
-                    #          f'name: {name}\n'
-                    # f.write(header)
                     f.write(filing_data['filing'])
                     ctr += 1
-                if ctr > 1:
-                    sys.exit(0)
 
-            break;
+        if ctr > 1:
+            sys.exit(0)
 
         # Sleep for a random interval between the given number of seconds
         selenium_utils.browser_sleep(3, 10)

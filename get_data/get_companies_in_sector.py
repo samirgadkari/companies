@@ -1,6 +1,7 @@
 import re
 import sys
 import json
+import html
 import selenium
 import functools
 import operator
@@ -108,7 +109,7 @@ def build_output(companies_list):
             'CIK': CIK,
             'link': company_links[idx],
             'name': regex_replace_chars.sub(replace_chars,
-                                            names[idx])
+                                            html.unescape(names[idx]))
         }
 
     return companies
