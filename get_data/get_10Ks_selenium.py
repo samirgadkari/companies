@@ -3,6 +3,7 @@ import re
 import sys
 import json
 import urllib
+import urllib.request
 import selenium_utils
 from decouple import config
 from datetime import datetime
@@ -43,7 +44,7 @@ def get_filing_data(filing, filing_type):
         period_ending_str = get_element(regex_period_ending, part_filing)
         period_ending = datetime.strptime(period_ending_str, '%Y%m%d')
     except (ValueError, TypeError) as e:
-        print(f'error raised: e')
+        print(f'error raised: {e}')
         print(f'part_filing: {part_filing}')
         return None
 
@@ -112,8 +113,13 @@ def process_page(browser):
             print(e)
             # Use this only if needed. Urllib does not do such a good job
             # of acting as a browser talking to the server, so
-            # if you do this all the time, your access may be blocked.
-            filing = urllib.request.urlopen(file_link_element_href).read()
+           # if you do this all the time, your access may be blocked.
+            headers = {}
+            headers['User-Agent'] = "Mozilla/5.0 (X11; Ubuntu; Linux i686;" \
+                                    "rv:48.0) Gecko/20100101 Firefox/48.0"
+            req = urllib.request.Request(file_link_element_href,
+                                         headers = headers)
+            filing = urllib.request.urlopen(req).read()
 
         filing_data = get_filing_data(filing, filing_type)
         if filing_data is None:
