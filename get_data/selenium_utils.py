@@ -60,6 +60,13 @@ def browser_sleep(start, stop):
 # context menu.
 # This will only work if you have a context menu
 # inside your HTML page.
+#
+# Using urllib instead to get the page source.
+# I'm using it sparingly because if used all the time,
+# we will be blocked by the server.
+# Selenium does not have this issue since it is
+# goes through a browser, so looks just like a
+# user is accessing the server.
 def get_filing(browser, element, filename):
 
     element.click()

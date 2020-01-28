@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import urllib
 import selenium_utils
 from decouple import config
 from datetime import datetime
@@ -109,7 +110,10 @@ def process_page(browser):
             filing = browser.page_source
         except WebDriverException as e:
             print(e)
-            continue
+            # Use this only if needed. Urllib does not do such a good job
+            # of acting as a browser talking to the server, so
+            # if you do this all the time, your access may be blocked.
+            filing = urllib.request.urlopen(file_link_element_href).read()
 
         filing_data = get_filing_data(filing, filing_type)
         if filing_data is None:
