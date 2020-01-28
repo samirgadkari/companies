@@ -10,6 +10,7 @@ from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import WebDriverException
 
 # Compile regex for faster processing
 regex_period_ending = re.compile(r'^\s*CONFORMED PERIOD OF REPORT:\s*(.+)$',
@@ -40,10 +41,10 @@ def get_filing_data(filing, filing_type):
     try:
         period_ending_str = get_element(regex_period_ending, part_filing)
         period_ending = datetime.strptime(period_ending_str, '%Y%m%d')
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         print(f'error raised: e')
         print(f'part_filing: {part_filing}')
-        sys.exit(0)
+        return None
 
     period_starting = period_ending + \
         relativedelta(years=-1) + \
@@ -104,8 +105,16 @@ def process_page(browser):
         browser.get(file_link_element_href)
         selenium_utils.browser_sleep(5, 7)
 
-        filing = browser.page_source
+        try:
+            filing = browser.page_source
+        except WebDriverException as e:
+            print(e)
+            continue
+
         filing_data = get_filing_data(filing, filing_type)
+        if filing_data is None:
+            continue
+
         company_filings.append(filing_data)
 
         # Sleep for a random interval between the given number of seconds
@@ -129,7 +138,6 @@ def get_10Ks(companies):
         print(f'Getting url: {url}')
         browser.get(url)
         company_filings = process_page(browser)
-        ctr = 0
         if (company_filings is not None) and \
            (len(company_filings) > 0):
             for filing_data in company_filings:
@@ -145,13 +153,9 @@ def get_10Ks(companies):
                                      filing_type)
                 with open(filename, 'w') as f:
                     f.write(filing_data['filing'])
-                    ctr += 1
-
-        if ctr > 1:
-            sys.exit(0)
 
         # Sleep for a random interval between the given number of seconds
-        selenium_utils.browser_sleep(3, 10)
+        selenium_utils.browser_sleep(10, 50)
 
 if __name__ == '__main__':
     with open(os.path.join(
