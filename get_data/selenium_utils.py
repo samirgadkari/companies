@@ -46,7 +46,7 @@ def browser_sleep(start, stop):
 
 
 # browser.page_source does not work for huge HTML pages.
-# Out HTML pages will be huge sometimes, since it's the text
+# Our HTML pages will be huge sometimes, since it's the text
 # of all the company filing data.
 # Instead,
 #   - download the file to a local directory,
@@ -64,8 +64,8 @@ def browser_sleep(start, stop):
 # Using urllib instead to get the page source.
 # I'm using it sparingly because if used all the time,
 # we will be blocked by the server.
-# Selenium does not have this issue since it is
-# goes through a browser, so looks just like a
+# Selenium does not have this issue since it
+# goes through a browser, so it looks just like a
 # user is accessing the server.
 def get_filing(browser, element, filename):
 
