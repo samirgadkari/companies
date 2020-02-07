@@ -62,14 +62,8 @@ def extract_tables_from_files():
                            '10-k',
                            '*'))
 
-    # import pdb; pdb.set_trace()
-
     filenames = [fn for fn in filenames if 'tables_extracted' not in fn]
-    # count = 0
     for f_name in filenames:
-        # count += 1
-        # if count > 2:
-        #     return
         if os.path.isfile(tables_extracted_filename(f_name)):
            continue
 
