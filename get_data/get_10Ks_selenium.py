@@ -4,7 +4,7 @@ import sys
 import json
 import urllib
 import urllib.request
-import selenium_utils
+from .selenium_utils import *
 from decouple import config
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -133,7 +133,11 @@ def process_page(browser):
     return company_filings
 
 
-def get_10Ks(companies):
+def get_10Ks():
+    with open(os.path.join(
+            config('DATA_DIR'), 'banking_companies.json'), 'r') as f:
+        companies = json.load(f)
+
     browser = selenium_utils.configure_browser()
 
     for CIK, company in companies.items():
@@ -168,8 +172,4 @@ def get_10Ks(companies):
         selenium_utils.browser_sleep(10, 50)
 
 if __name__ == '__main__':
-    with open(os.path.join(
-            config('DATA_DIR'), 'banking_companies.json'), 'r') as f:
-        companies = json.load(f)
-
-    get_10Ks(companies)
+    get_10Ks()

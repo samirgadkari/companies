@@ -5,7 +5,7 @@ import html
 import selenium
 import functools
 import operator
-import selenium_utils
+from .selenium_utils import *
 from decouple import config
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -114,7 +114,8 @@ def build_output(companies_list):
 
     return companies
 
-if __name__ == '__main__':
+
+def get_companies():
     banking_companies = \
       all_company_pages(selenium_utils.configure_browser(),
                         get_url('banks'))
@@ -123,3 +124,6 @@ if __name__ == '__main__':
     with open(config('DATA_DIR') + '/' + 'banking_companies.json', 'w') as f:
         json_str = json.dumps(companies, indent=4)
         f.write(json_str)
+
+if __name__ == '__main__':
+    get_companies()
