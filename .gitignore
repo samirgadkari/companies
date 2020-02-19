@@ -1,5 +1,6 @@
-# Ignore data directory
+# Ignore data directory and backup file
 data/
+data.7z
 
 # Ignore HTML files
 *.html
