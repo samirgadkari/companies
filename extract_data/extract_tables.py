@@ -29,6 +29,7 @@ regex_xbrl_file = re.compile(r'<XBRL>',
 num_files_extracted = 0
 num_files_extraction_error = 0
 
+
 def tables_extracted_dirname(f_name):
     prefix, date_range = os.path.split(f_name)
     prefix, filing_type = os.path.split(prefix)
@@ -63,8 +64,10 @@ def is_xbrl_file(filedata):
 
 
 def is_html_file(filedata):
-    upper_case_body_tags = [s in filedata for s in ['<BODY', '/BODY']]
-    lower_case_body_tags = [s in filedata for s in ['<body', '/body']]
+    upper_case_body_tags = \
+        all([s in filedata for s in ['<BODY', '/BODY']])
+    lower_case_body_tags = \
+        all([s in filedata for s in ['<body', '/body']])
     return upper_case_body_tags or lower_case_body_tags
 
 
