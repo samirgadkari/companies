@@ -106,11 +106,13 @@ def extract_tables():
     global num_files_extracted
     global num_files_extraction_error
 
-    filenames = list(glob.iglob(os.path.join(
-                                    config('DATA_DIR'),
-                                    '0*',
-                                    '10-k',
-                                    '*')))
+    filename = os.path.join(config('DATA_DIR'), 'filtered_filenames')
+    with open(filename, 'r') as f:
+        fns = f.read().split('\n')
+
+    filenames = []
+    for fn in fns:
+        filenames.extend(list(glob.iglob(os.path.join(fn, '10-k', '*'))))
 
     xbrl_files = 0
     files_read = 0
