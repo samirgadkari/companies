@@ -5,6 +5,7 @@ import numpy as np
 from decouple import config
 
 text_samples_dir = config('TEXT_SAMPLES_DIR')
+html_samples_dir = config('HTML_SAMPLES_DIR')
 
 
 class FilterItems():
@@ -48,7 +49,7 @@ def top_level_names(d):
             result=[],
             filter_= \
                 FilterItems( \
-                    ['table_number_interpretation', 'table_years', 'name']).apply,
+                    ['table_number_interpretation', 'table_years', 'table_months', 'name']).apply,
             output=append_result_to_list)
 
 def get_names(d):
@@ -68,7 +69,11 @@ def get_values(d):
             recurse=True)
 
 def all_elements_are_in_data(elements, data):
-    return all([e in data for e in elements])
+    results = [e in data for e in elements]
+    for i, r in enumerate(results):
+        if r is False:
+            print(f'{elements[i]}: not found in data')
+    return all(results)
 
 def data_contains_all_elements(data, elements):
     return all_elements_are_in_data(get_names(elements), data) and \
@@ -76,36 +81,52 @@ def data_contains_all_elements(data, elements):
 
 def check_hand_created_samples():
     result = True
-    text_filenames = glob.iglob(os.path.join(text_samples_dir,
-                                             'text_input',
-                                             '*'))
-    json_filenames = glob.iglob(os.path.join(text_samples_dir,
-                                             'json_input',
-                                             '*'))
-    for t_fn, j_fn in zip(text_filenames, json_filenames):
-        with open(t_fn, 'r') as f:
-            text_input_data = f.read()
-        with open(j_fn, 'r') as f:
-            json_input_data = json.load(f)
-        if data_contains_all_elements(text_input_data,
-                                      json_input_data) == False:
-            print(f'Errors found in:\n  text_input: {t_fn}\n'
-                  f'  json_input: {j_fn}')
-            result = False
+    for samples_dir, input_name in \
+        zip([text_samples_dir, html_samples_dir],
+            ['text_input', 'html_input']):
+        data_filenames = glob.iglob(os.path.join(samples_dir,
+                                                 input_name,
+                                                 '*'))
+        json_filenames = glob.iglob(os.path.join(samples_dir,
+                                                 'json_input',
+                                                 '*'))
+        for d_fn, j_fn in zip(data_filenames, json_filenames):
+            print(f'Checking:\n  {d_fn}\n  {j_fn}\n')
+            with open(d_fn, 'r') as f:
+                input_data = f.read()
+            with open(j_fn, 'r') as f:
+                json_input_data = json.load(f)
+            if data_contains_all_elements(input_data,
+                                          json_input_data) == False:
+                print(f'Errors found in:\n  input: {d_fn}\n'
+                      f'  json_input: {j_fn}')
+                result = False
     return result
 
-def generate_random_text(input_text_filenames, num_output_files):
-    for _ in range(num_output_files):
-        input_text_fn = np.random.choice(input_text_filenames)
+with open('./extract_data/samples/text/text_input/1.text', 'r') as f:
+    data = f.read()
 
-        fn_parts = input_text_fn.split(os.sep)
-        fn_prefix = fn_parts[-1].split('.')[0]
-        input_json_fn = os.path.join(*fn_parts[:-2],
-                                     'input_json',
-                                     fn_prefix + '.json')
-        output_json_fn = os.path.join(*fn_parts,
-                                      'output_json',
-                                      fn_prefix + '.json')
+with open('./extract_data/samples/text/json_input/1.json', 'r') as f:
+    j = json.load(f)
+
+with open('./extract_data/samples/html/html_input/1.html', 'r') as f:
+    data = f.read()
+
+with open('./extract_data/samples/html/json_input/1.json', 'r') as f:
+    j = json.load(f)
+
+# def generate_random_text(input_text_filenames, num_output_files):
+#     for _ in range(num_output_files):
+#         input_text_fn = np.random.choice(input_text_filenames)
+
+#         fn_parts = input_text_fn.split(os.sep)
+#         fn_prefix = fn_parts[-1].split('.')[0]
+#         input_json_fn = os.path.join(*fn_parts[:-2],
+#                                      'input_json',
+#                                      fn_prefix + '.json')
+#         output_json_fn = os.path.join(*fn_parts,
+#                                       'output_json',
+#                                       fn_prefix + '.json')
 
 
 if __name__ == '__main__':
