@@ -3,21 +3,23 @@ import os
 import sys
 import glob
 import html
-from utils.html_utils import replace_html_tags
 from decouple import config
+from bs4 import BeautifulSoup
+from utils.html_utils import replace_html_tags
 
 TABLES_EXTRACTED_DIR_SUFFIX = 'tables-extracted'
 TABLES_EXTRACTED_FILE_SUFFIX = 'table-extracted'
 
 TEXT_FILE_TYPE = 0
 HTML_FILE_TYPE = 1
+MIN_TABLE_SIZE = 10240  # 10KB
 
-# Get everything except the table tags since this is for text.
+# Get everything including the table tags.
 regex_table_for_text = re.compile(r'(<TABLE.*?>.*?<\/TABLE>)',
                                   flags=re.DOTALL | \
                                   re.IGNORECASE)
 
-# Get everything including the table tags since this is html.
+# Get everything including the table tags.
 regex_table_for_html = re.compile(r'(<TABLE.*?>.*?<\/TABLE>)',
                                   flags=re.DOTALL | \
                                   re.IGNORECASE)
@@ -42,6 +44,21 @@ def tables_extracted_dirname(f_name):
                             date_range)
     return dir_name
 
+
+def extracted_files_exists_for(f_name):
+    extracted_dirname = os.path.join(config('EXTRACTED_TABLES_DIR'),
+                                     os.path.split(f_name)[-1])
+    return os.path.exists(extracted_dirname)
+
+
+def unprocessed_files(fns):
+    last_file_first = fns[::-1]
+    for id, fn in enumerate(last_file_first):
+        if extracted_files_exists_for(fn):
+            files_to_process = last_file_first[:id][::-1]
+            return len(files_to_process), files_to_process
+    print('All files already processed !!')
+    return 0, []
 
 def extracted_tables_filename(dir_name, id):
     return os.path.join(dir_name,
@@ -71,27 +88,34 @@ def is_html_file(filedata):
     return upper_case_body_tags or lower_case_body_tags
 
 
-# This seems to not work, probably because the current
-# HTML spec is different. Online validators report
-# errors in the older HTML text.
-#
-# from bs4 import BeautifulSoup
-# def extract_html_tables(filedata):
-#     soup = BeautifulSoup(filedata, 'html.parser')
-#     return soup.find_all('table', recursive=False)
-
+def prettify_html(data):
+    result = data
+    try:
+        soup = BeautifulSoup(data, 'html.parser')
+        result = soup.prettify()
+    except RecursionError as e:
+        print('Recursion Error occurred - dont prettify HTML')
+    return result
 
 def save_files(dir_name, file_type, matches):
     print(f'file_type: {file_type}')
-    for id, match in enumerate(matches, start=-1):
 
-        if id == -1:  # Ignore the first match (which is the full match)
+    id = 0
+    # Ignore the first match, since it is the full match
+    for match in matches[1:]:
+
+        # Ignore small tables - many times they're just formatting.
+        if len(match) < MIN_TABLE_SIZE:
             continue
 
         if file_type == TEXT_FILE_TYPE:
             match = replace_html_tags(match)
+        if file_type == HTML_FILE_TYPE:
+            match = prettify_html(match)
+
         f_name = extracted_tables_filename(dir_name, id)
         write_extracted_table_file(f_name, match)
+        id += 1
 
 
 def save_tables(matches, f_name, file_type):
@@ -110,6 +134,10 @@ def extract_tables():
     with open(filename, 'r') as f:
         fns = f.read().split('\n')
 
+    fns_len, fns = unprocessed_files(fns)
+    if fns_len == 0:
+        return
+
     filenames = []
     for fn in fns:
         filenames.extend(list(glob.iglob(os.path.join(fn, '10-k', '*'))))
@@ -119,13 +147,21 @@ def extract_tables():
     num_files = len(filenames)
     for f_name in filenames:
         print(f'Processing file: {f_name}')
+        if extracted_files_exists_for(f_name):
+            print(f'File exists: {f_name}')
+            continue
+
         with open(f_name, 'r') as f:
             filedata = html.unescape(f.read())
 
         files_read += 1
         if is_xbrl_file(filedata):
             print('  xbrl file')
-            xbrl_files += 1  # ignore XBRL files for now
+            xbrl_files += 1  # Treat XBRL files as HTML files.
+                             # Here we're finding out their percentage
+                             # in our dataset.
+                             # Find out how to process them
+                             # as XBRL later.
             matches = regex_table_for_html.findall(filedata)
             tables_saved = save_tables(matches, f_name, HTML_FILE_TYPE)
         else:
