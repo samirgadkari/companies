@@ -5,6 +5,7 @@ from extract_data.extract_tables import extract_tables
 from extract_data.filter import filter_data
 from generate_data.generate import check_hand_created_samples
 from generate_data.generate import generate_samples
+from transform_data import html
 
 if __name__ == '__main__':
     try:
@@ -19,6 +20,7 @@ if __name__ == '__main__':
         'get_10Ks':       get_10Ks,
         'get_companies':  get_companies,
         'filter':         filter_data,
+        'test_html':      html.test_html,
     }
     func = switcher.get(function_, lambda: "nothing")
     func()
