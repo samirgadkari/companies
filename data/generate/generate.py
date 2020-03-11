@@ -5,8 +5,8 @@ import html
 import json
 import numpy as np
 from decouple import config
-from utils.html_utils import *
-from utils.file_utils import *
+from utils.html import *
+from utils.file import *
 
 text_samples_dir = config('TEXT_SAMPLES_DIR')
 html_samples_dir = config('HTML_SAMPLES_DIR')
