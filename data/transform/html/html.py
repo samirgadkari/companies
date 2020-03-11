@@ -2,7 +2,7 @@ import re
 import json
 import itertools as it
 from bs4 import BeautifulSoup
-from utils.file_utils import read_file
+from utils.file import read_file
 
 class Html():
 
@@ -335,12 +335,12 @@ class Html():
         return entries
 
 def test_html():
-    html_ = Html('./extract_data/samples/html/html_input/1.html')
+    html_ = Html('./data/extract/samples/html/html_input/1.html')
     rows = html_.to_rows()
     row_headings, col_headings, values = html_.extract_data(rows)
     json_ = html_.data_to_json(row_headings, col_headings, values)
 
-    with open('1.json', 'w') as f:
+    with open('../../../../temp/1.json', 'w') as f:
         json.dump(json_, f)
 
 if __name__ == '__main__':

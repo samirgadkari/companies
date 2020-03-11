@@ -1,5 +1,5 @@
-from utils.html_utils import Soup
-from utils.file_utils import *
+from utils.html import Soup
+from utils.file import *
 
 generated_samples_dir = config('GENERATED_SAMPLES_DIR')
 
@@ -8,7 +8,7 @@ def encode_file(filename):
     return soup.prettify()
 
 def encode_html(filename):
-    data = shorten_file(filename)  TODO
+    data = shorten_file(filename)  # TODO
     all_data_keys = set()
     pos = 0
     for item, item_len in next_tag_or_data(data[pos:]):

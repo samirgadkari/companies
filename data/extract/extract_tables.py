@@ -5,7 +5,7 @@ import glob
 import html
 from decouple import config
 from bs4 import BeautifulSoup
-from utils.html_utils import replace_html_tags
+from utils.html import replace_html_tags
 
 TABLES_EXTRACTED_DIR_SUFFIX = 'tables-extracted'
 TABLES_EXTRACTED_FILE_SUFFIX = 'table-extracted'
