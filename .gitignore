@@ -1,6 +1,4 @@
 # Ignore data directory and backup file
-data/
-data.7z
 samples/
 
 # Ignore HTML files
