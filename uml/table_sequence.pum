@@ -1,0 +1,5 @@
+@startuml
+
+Table -> Table: read_file\ncreate soup\nshorten table\nextract rows, column headings, and cells with alignment
+
+@enduml

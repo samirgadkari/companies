@@ -19,38 +19,38 @@ class Html():
         self.filename = filename
         self.data = read_file(self.filename)
         self.soup = BeautifulSoup(self.data, 'html.parser')
-        self.shorten_data()
+        self.shorten()
 
-    def shorten_data(self):
-        self.copy_style_attr_to_td()
-        self.table_tags()
-        self.relevant_attrs()
+    def shorten(self):
+        self.add_style_attr_to_td()
+        self.tags()
+        self.attrs()
         self.data = str(self.soup)
 
-    def tags(self):
+    def all_tags(self):
         return self.soup.find_all(True)
 
     def text(self):
         return self.soup.get_text()
 
-    def relevant_attrs(self):
-        tags = self.tags()
+    def attrs(self):
+        tags = self.all_tags()
         for tag in tags:
-            attrs = [attr for attr in tag.attrs.keys()]
-            for attr in attrs:
+            attributes = [attr for attr in tag.attrs.keys()]
+            for attr in attributes:
                 if attr not in ['rowspan', 'colspan', 'style']:
                     del tag[attr]
 
-    def table_tags(self):
+    def tags(self):
         table_tag_names = set(['table', 'th', 'tr', 'td'])
-        all_tag_names = set(map(lambda t: t.name, self.tags()))
+        all_tag_names = set(map(lambda t: t.name, self.all_tags()))
         remove_tag_names = all_tag_names.difference(table_tag_names)
         for tag_name in remove_tag_names:
             tags = self.soup.find_all(tag_name)
             for tag in tags:
                 tag.unwrap() # keep the content, but remove the surrounding tag
 
-    def copy_style_attr_to_td(self):
+    def add_style_attr_to_td(self):
         tds = self.soup('td')
         for td in tds:
             alignment = 'left'  # By default, text in tds are left-aligned
@@ -88,8 +88,7 @@ class Html():
 
         tables = self.soup('table')
         if len(tables) > 1:
-            print(f'{soup.filename}: More than one table found')
-            return None
+            raise ValueError(f'{soup.filename}: More than one table found')
 
         rows = []
         for tr_idx, tr in enumerate(tables[0].find_all('tr')):

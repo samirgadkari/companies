@@ -5,7 +5,8 @@ from data.extract.extract_tables import extract_tables
 from data.extract.filter import filter_data
 from data.generate.generate import check_hand_created_samples
 from data.generate.generate import generate_samples
-from data.transform.html import html
+# from data.transform.html import html
+from data.transform.html.table import create_table
 
 if __name__ == '__main__':
     try:
@@ -20,7 +21,7 @@ if __name__ == '__main__':
         'get_10Ks':       get_10Ks,
         'get_companies':  get_companies,
         'filter':         filter_data,
-        'test_html':      html.test_html,
+        'create_table':     create_table,
     }
     func = switcher.get(function_, lambda: "nothing")
     func()
