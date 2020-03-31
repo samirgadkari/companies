@@ -1,0 +1,18 @@
+@startuml
+
+Table -> Row: rows
+Row -> Cell: init
+Row <-- Cell: init response
+Row -> Row: get_span
+Row -> Cell: get_alignment
+Row <-- Cell: get_alignment response
+Row -> Cell: clean
+Row <-- Cell: clean response
+Table <-- Row: rows response
+Table -> ColHeading: col_headings
+ColHeading -> ColHeading: values
+Value -> Value: is_amount\nis_year
+ColHeading -> ColHeading: all_col_headings\nshould_merge_col_headings\nmerge_col_headings
+Table <-- ColHeading: col_headings response
+
+@enduml
