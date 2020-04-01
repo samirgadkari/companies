@@ -118,13 +118,9 @@ class Table():
                 tag.unwrap() # keep the content, but remove the surrounding tag
 
 
-def create_table_():
+def create_table():
     table = Table('./data/extract/samples/html/html_input/1.html')
     print(table.rows)
-
-
-def create_table():
-    create_table_()
 
 
 if __name__ == '__main__':
