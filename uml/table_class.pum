@@ -1,0 +1,30 @@
+@startuml
+
+Table "1" *-- "many" Row :contains
+Table "1" *-- "many" ColHeading :contains
+Row "1" *-- "many" Cell :contains
+Cell "1" *-- "1" Alignment: contains
+Cell "1" *-- "1" Value: contains
+
+Table : data       ' full html file data
+Table : soup       ' BeautifulSoup table object
+Table : all_tags() ' all table tags
+Table : tags()     ' relevant table tags
+Table : attrs()    ' relevant table attrs
+Table : shorten()  ' keep only relevant tags/attrs
+Table : add_style_attr_to_td()
+Table : parse_rows() ' soup table object to rows
+
+ColHeading : Int col_start         ' ColHeading boundary
+ColHeading : Int col_end           ' ColHeading boundary
+
+Row : Int row_start         ' row boundary
+Row : Int row_end           ' row boundary
+
+Cell : Int col_start         ' cell boundary
+Cell : Int col_end           ' cell boundary
+Cell : Alignment alignment   ' cell alignment
+Cell : Value value           ' value in this cell
+
+Value : clean()    ' clean cell value
+@enduml

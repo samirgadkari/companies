@@ -1,0 +1,159 @@
+{
+    "table_number_interpretation": "(In thousands, except share data)",
+    "table_years": ["1998", "1997"],
+    "table_data": [
+        {
+            "name": "ASSETS",
+            "sections": [
+                {
+                    "name": "Cash and cash equivalents:",
+                    "sections": [
+                        {
+                            "name": "Cash and due from banks",
+                            "values": ["38,385", "75,830"]
+                        },
+                        {
+                            "name": "Interest bearing deposits in other banks",
+                            "values": ["1,914", "1,300"]
+                        },
+                        {
+                            "name": "Federal funds sold and securities purchased under\n       agreements to resell",
+                            "values": ["51,535", "109,610"]
+                        },
+                        {
+                            "name": "Total cash and cash equivalents",
+                            "values": ["91,834", "186,740"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Investment securities:",
+                    "sections": [
+                        {
+                            "name": "Available for sale, amortized cost of $190,928 (1998) and $118,926 (1997)",
+                            "values": ["191,487", "119,076"]
+                        },
+                        {
+                            "name": "Held to maturity, market value of $73,167 (1998) and $96,541 (1997)",
+                            "values": ["71,369", "95,686"]
+                        },
+                        {
+                            "name": "Total investment securities",
+                            "values": ["262,856", "214,762"]
+                        }
+                    ]
+                },
+                {
+                    "name": "",
+                    "sections": [
+                        {
+                            "name": "Loans, net of unearned income",
+                            "values": ["604,683", "585,940"]
+                        },
+                        {
+                            "name": "Allowance for loan losses",
+                            "values": ["(9,048)", "(9,114)"]
+                        },
+                        {
+                            "name": "Loans, net",
+                            "values": ["595,635", "576,826"]
+                        }
+                    ]
+                },
+                {
+                    "name": "",
+                    "sections": [
+                        {
+                            "name": "Premises and equipment, net",
+                            "values": ["24,861", "21,214"]
+                        },
+                        {
+                            "name": "Other assets",
+                            "values": ["17,152", "14,641"]
+                        },
+                        {
+                            "name": "Total assets",
+                            "values": ["992,338", "1,014,183"]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "LIABILITIES",
+            "sections": [
+                {
+                    "name": "Deposits:",
+                    "sections": [
+                        {
+                            "name": "Noninterest bearing",
+                            "values": ["123,741", "151,600"]
+                        },
+                        {
+                            "name": "Interest bearing",
+                            "values": ["706,260", "683,376"]
+                        },
+                        {
+                            "name": "Total deposits",
+                            "values": ["830,001", "834,976"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Securities sold under agreements to repurchase",
+                    "values": ["26,324", "48,265"]
+                },
+                {
+                    "name": "Other borrowed funds",
+                    "values": ["3,926", "5,390"]
+                },
+                {
+                    "name": "Dividends payable",
+                    "values": ["2,113", "1,815"]
+                },
+                {
+                    "name": "Other liabilities",
+                    "values": ["6,135", "6,693"]
+                },
+                {
+                    "name": "Total liabilities",
+                    "values": ["868,499", "897,139"]
+                }
+            ]
+        },
+        {
+            "name": "Commitments and contingencies",
+            "sections": [
+                {
+                    "name": "SHAREHOLDERS' EQUITY",
+                    "sections": [
+                        {
+                            "name": "Common stock, par value $.125 per share; 9,608,000 shares authorized;\n   7,520,465 and 7,562,440 shares issued and outstanding\n   at December 31, 1998 and 1997, respectively",
+                            "values": ["940", "945"]
+                        },
+                        {
+                            "name": "Capital surplus",
+                            "values": ["10,520", "8,894"]
+                        },
+                        {
+                            "name": "Retained earnings",
+                            "values": ["112,010", "107,105"]
+                        },
+                        {
+                            "name": "Accumulated other comprehensive income",
+                            "values": ["369", "100"]
+                        },
+                        {
+                            "name": "Total shareholders' equity",
+                            "values": ["123,839", "117,044"]
+                        },
+                        {
+                            "name": "Total liabilities and shareholders' equity",
+                            "values": ["992,338", "1,014,183"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

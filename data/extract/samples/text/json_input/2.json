@@ -1,0 +1,18 @@
+{
+    "table_number_interpretation": "(Dollars in Thousands)",
+    "table_months": [["3 Months", "or less"], ["3-6", "Months"], ["6-12", "Months"], ["Over 12", "Months"], "Total"],
+    "table_data": [
+        {
+            "sections": [
+                {
+                    "name": "Certificates of deposit and\n  other time deposits",
+                    "values": ["69,737", "19,601", "26,319", "84,077", "199,734"]
+                },
+                {
+                    "name": "Per cent",
+                    "values": ["35", "10", "13", "42", "100"]
+                }
+            ]
+        }
+    ]
+}

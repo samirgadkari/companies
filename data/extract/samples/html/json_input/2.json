@@ -1,0 +1,157 @@
+{
+    "table_number_interpretation": "PARENT COMPANY FINANCIAL INFORMATION (Details) - USD ($)<br> $ in Thousands",
+    "table_years_months": ["Dec. 31, 2017", "Dec. 31, 2016", "Dec. 31, 2015"],
+    "table_data": [
+        {
+            "name": "ASSETS",
+            "sections": [
+                {
+                    "name": "Cash",
+                    "values": ["26,234", "25,107"]
+                },
+                {
+                    "name": "Short-term investments in money market funds",
+                    "values": ["5,256", "5,900"]
+                },
+                {
+                    "name": "Investment securities available for sale",
+                    "values": ["129,138", "127,077"]
+                },
+                {
+                    "name": "Other assets",
+                    "values": ["4,129", "4,243"]
+                },
+                {
+                    "name": "TOTAL ASSETS",
+                    "values": ["1,167,655", "1,153,780", "1,148,497"]
+                }
+            ]
+        },
+        {
+            "name": "LIABILITIES",
+            "sections": [
+                {
+                    "name": "Guaranteed junior subordinated deferrable interest debentures",
+                    "values": ["12,923", "12,908"]
+                },
+                {
+                    "name": "Subordinated debt",
+                    "values": ["7,465", "7,441"]
+                },
+                {
+                    "name": "Other liabilities",
+                    "values": ["8,907", "11,954"]
+                },
+                {
+                    "name": "TOTAL LIABILITIES",
+                    "values": ["1,072,553", "1,058,385"]
+                }
+            ]
+        },
+        {
+            "name": "STOCKHOLDERS&#8217; EQUITY",
+            "sections": [
+                {
+                    "name": "Total stockholders&#8217; equity",
+                    "values": ["95,102", "95,395", "118,973"]
+                },
+                {
+                    "name": "TOTAL LIABILITIES AND STOCKHOLDERS&#8217 EQUITY",
+                    "values": ["1,167,655", "1,153,780"]
+                }
+            ]
+        },
+        {
+            "name": "Parent Company [Member]",
+            "sections": [
+                {
+                    "name": "ASSETS",
+                    "sections": [
+                        {
+                            "name": "Cash",
+                            "values": ["100", "100"]
+                        },
+                        {
+                            "name": "Short-term investments in money market funds",
+                            "values": ["4,521", "5,397"]
+                        },
+                        {
+                            "name": "Investment securities available for sale",
+                            "values": ["5,307", "6,041"]
+                        },
+                        {
+                            "name": "Other assets",
+                            "values": ["499", "2,665"]
+                        },
+                        {
+                            "name": "TOTAL ASSETS",
+                            "values": ["116,279", "116,529"]
+                        }
+                    ]
+                },
+                {
+                    "name": "LIABILITIES",
+                    "sections": [
+                        {
+                            "name": "Guaranteed junior subordinated deferrable interest debentures",
+                            "values": ["12,923", "12,908"]
+                        },
+                        {
+                            "name": "Subordinated debt",
+                            "values": ["7,465", "7,441"]
+                        },
+                        {
+                            "name": "Other liabilities",
+                            "values": ["789", "785"]
+                        },
+                        {
+                            "name": "TOTAL LIABILITIES",
+                            "values": ["21,177", "21,134"]
+                        }
+                    ]
+                },
+                {
+                    "name": "STOCKHOLDERS&#8217; EQUITY",
+                    "sections": [
+                        {
+                            "name": "Total stockholders&#8217; equity",
+                            "values": ["95,102", "95,395"]
+                        },
+                        {
+                            "name": "TOTAL LIABILITIES AND STOCKHOLDERS&#8217; EQUITY",
+                            "values": ["116,279", "116,529"]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Parent Company [Member] | Banking Subsidiary [Member]",
+            "sections": [
+                {
+                    "name": "ASSETS",
+                    "sections": [
+                        {
+                            "name": "Equity investment",
+                            "values": ["99,408", "97,158"]
+                        }
+                    ]
+                }
+            ]
+       },
+       {
+           "name": "Parent Company [Member] | Non Banking Subsidiaries [Member]",
+           "sections": [
+               {
+                   "name": "ASSETS",
+                   "sections": [
+                       {
+                           "name": "Equity investment",
+                           "values": ["6,444", "5,168"]
+                       }
+                   ]
+               }
+           ]
+       }
+    ]
+}

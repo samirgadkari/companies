@@ -1,0 +1,103 @@
+{
+    "table_number_interpretation": "(Dollars in Thousands)",
+    "table_years_months": [["Three Months Ended December 31,", "2015"],
+                           ["Three Months Ended December 31,", "2014"],
+                           ["Year Ended December 31,", "2015"],
+                           ["Year Ended December 31,", "2014"]],
+    "table_data": [
+        {
+            "sections": [
+                {
+                    "name": "Net interest income (GAAP)",
+                    "values": ["185,231", "192,511", "741,295", "775,568"]
+                },
+                {
+                    "name": "TE Adjustment (non-GAAP)",
+                    "values": ["3,748", "3,998", "15,375", "16,107"]
+                },
+                {
+                    "name": "Net interest income TE (non-GAAP)",
+                    "values": ["188,979", "196,509", "756,670", "791,675"]
+                },
+                {
+                    "name": "Adjustments to noninterest income",
+                    "sections": [
+                        {
+                            "name": "Noninterest income (GAAP)",
+                            "values": ["65,143", "71,960", "268,998", "281,524"]
+                        },
+                        {
+                            "name": ["Less:", "Securities gains (losses)"],
+                            "values": ["(5", "16", "957", "166"]
+                        },
+                        {
+                            "name": ["Plus:", "Branch closure costs and acquisition related expenses"],
+                            "values": ["&#8212;", "&#8212;", "2,973", "3,951"]
+                        },
+                        {
+                            "name": "Adjusted noninterest income (non-GAAP)",
+                            "values": ["65,148", "71,944", "271,014", "285,309"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Adjusted total revenue, TE excluding securities gains (losses) (non-GAAP)",
+                    "values": ["254,127", "268,453", "1,027,684", "1,076,984"]
+                },
+                {
+                    "name": "Noninterest expense (GAAP)",
+                    "values": ["155,622", "165,041", "638,690", "664,919"]
+                },
+                {
+                    "name": "Adjustments to noninterest expense",
+                    "sections": [
+                        {
+                            "name": ["Less:", "Intangible asset amortization"],
+                            "values": ["2,598", "2,933", "10,392", "11,735"]
+                        },
+                        {
+                            "name": "Adjusted noninterest expense, excluding amortization of intangibles",
+                            "values": ["153,024", "162,108", "628,298", "653,184"]
+                        },
+                        {
+                            "name": ["Less:", "Severance and related employee benefits"],
+                            "values": ["(307", "868", "1,460", "868"]
+                        },
+                        {
+                            "name": "Branch closure costs and acquisition related expenses",
+                            "values": ["&#8212;", "&#8212;", "&#8212;", "1,086"]
+                        },
+                        {
+                            "name": "Adjusted noninterest expense (non-GAAP)",
+                            "values": ["153,331", "161,240", "626,838", "651,230"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Annualized net interest income TE (non-GAAP)",
+                    "values": ["749,754", "779,628", "756,670", "791,675"]
+                },
+                {
+                    "name": "Average earning assets",
+                    "values": ["22,747,631", "21,920,889", "22,439,516", "21,502,747"]
+                },
+                {
+                    "name": "Net interest margin on an TE basis (non-GAAP)",
+                    "values": ["3.3", "3.56", "3.37", "3.68"]
+                },
+                {
+                    "name": "Fee income ratio (non-GAAP)",
+                    "values": ["25.64", "26.80", "26.16", "26.22"]
+                },
+                {
+                    "name": "Efficiency ratio, excluding amortization of intangible assets and securities gains/(losses) (non-GAAP)",
+                    "values": ["60.22", "60.39", "61.31", "60.87"]
+                },
+                {
+                    "name": "Adjusted efficiency ratio (non-GAAP)",
+                    "values": ["60.34", "60.06", "61.00", "60.47"]
+                }
+            ]
+        }
+    ]
+}
