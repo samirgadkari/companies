@@ -1,3 +1,10 @@
+# Ignore data directory and backup file
+samples/
+
+# Ignore HTML files
+*.html
+*.htm
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
