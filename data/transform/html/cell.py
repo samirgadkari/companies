@@ -12,6 +12,9 @@ class Cell():
                           'center': TEXT_ALIGN_CENTER,
                           'right': TEXT_ALIGN_RIGHT }
 
+    text_amount = re.compile(r'\s*[\$]?\(?([\d\.]*)\.?([\d\.]*)\)?',
+                             re.MULTILINE)
+
     def __init__(self, cell_tag):
         self.cell_tag = cell_tag
 
