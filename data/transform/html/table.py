@@ -25,7 +25,8 @@ class Table():
         self.rows = self.add_rows()
 
         self.df = self.create_dataframe()
-        self.update_dataframe()
+        self.cell_data()
+        self.value_locations()
         with pd.option_context('display.max_rows', None,
                                'display.max_columns', None):
             print(self.df)
@@ -40,7 +41,36 @@ class Table():
         return rows
 
 
-    def update_dataframe(self):
+    def value_locations(self):
+        df = self.df
+
+        def amount(value):
+            matches = Cell.text_amount.search(value.replace(',', ''))
+            if matches is None:
+                return None
+            else:
+                try:
+                    result = float(''.join(matches.groups()))
+                    if value[0] == '(':
+                        return -result
+                    else:
+                        return result
+                except ValueError as e:
+                    return None # Not all strings are numbers
+
+        df['amount'] = df['text'].apply(lambda text: amount(text))
+
+        years = [str(x) for x in range(1990, 2200)]
+        def year(text):
+            if text in years:
+                return int(text)
+            else:
+                return None
+
+        df['year'] = df['text'].apply(lambda text: year(text))
+
+
+    def cell_data(self):
         df = self.df
 
         def update_alignment(cell):
@@ -58,10 +88,11 @@ class Table():
             except KeyError as e:
                 return 1
 
-        df['rowspan'] = df['cell'].apply(lambda cell: update_span(cell, 'rowspan'))
-        df['colspan'] = df['cell'].apply(lambda cell: update_span(cell, 'colspan'))
+        df['rowspan'] = df['cell'].apply(lambda cell_tag: update_span(cell_tag, 'rowspan'))
+        df['colspan'] = df['cell'].apply(lambda cell_tag: update_span(cell_tag, 'colspan'))
 
-        df['text'] = df['cell'].apply(lambda cell: str(cell)) \
+        df['text'] = df['cell'].apply(lambda cell_tag:
+                                          str(cell_tag.text).strip()) \
                                .str.replace('\xa0', '', flags=re.MULTILINE) \
                                .str.replace('\n', '', flags=re.MULTILINE)
 
