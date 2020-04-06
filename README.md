@@ -1,5 +1,5 @@
 # companies
-Gather company 10K filings from the SEC for the banking industry using Selenium. Process them using Beautiful Soup and Regular Expressions. Save them to a MongoDB database.
+Web scrape company 10K filings from the SEC for the banking industry using Selenium. Process them using Beautiful Soup and Regular Expressions. Save them to a MongoDB database.
 
 ## Get Data from the SEC
   - Use Python Selenium package to get the 10K forms.
