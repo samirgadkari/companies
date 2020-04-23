@@ -10,6 +10,9 @@ from .row import Row
 
 class Table():
 
+    MIN_COL = 0
+    MAX_COL = 300  # We don't expect more than 300 columns in a table
+
     def __init__(self, filename):
         self.filename = filename
         self.data = read_file(self.filename)
@@ -27,12 +30,17 @@ class Table():
         self.df = self.create_dataframe()
         self.cell_data()
         self.value_locations()
+        self.make_table()
         with pd.option_context('display.max_rows', None,
                                'display.max_columns', None):
             print(self.df)
+            print(f'values_start_row: {self.values_start_row} '
+                  f'values_end_row:   {self.values_end_row}')
+            print(f'values_start_col: {self.values_start_col} '
+                  f'values_end_col: {self.values_end_col}')
 
+        self.build_table()
         sys.exit(0)
-
 
     def add_rows(self):
         rows = []
@@ -40,6 +48,8 @@ class Table():
             rows.append(Row(row_tag))
         return rows
 
+    def build_table(self):
+        pass
 
     def value_locations(self):
         df = self.df
@@ -51,16 +61,31 @@ class Table():
             else:
                 try:
                     result = float(''.join(matches.groups()))
-                    if value[0] == '(':
+                    if '(' in value:
                         return -result
                     else:
                         return result
-                except ValueError as e:
-                    return None # Not all strings are numbers
+                except ValueError:
+                    return None  # Not all strings are numbers
 
         df['amount'] = df['text'].apply(lambda text: amount(text))
 
+        def row_headings(text):
+            if len(text) == 1 and text[0] in '$%)()—':
+                return None
+
+            num_digits_in_text = len(list(filter(str.isdigit, text)))
+            num_chars_in_text = len(text)
+            if num_chars_in_text > 0 and \
+               (num_chars_in_text -
+                    num_digits_in_text)/num_chars_in_text > 0.5:
+                return text
+            else:
+                return None
+
+        df['row_headings'] = df['text'].apply(lambda text: row_headings(text))
         years = [str(x) for x in range(1990, 2200)]
+
         def year(text):
             if text in years:
                 return int(text)
@@ -69,6 +94,148 @@ class Table():
 
         df['year'] = df['text'].apply(lambda text: year(text))
 
+        def col_nums():
+
+            df_idx = 0
+            df_colspans = df['colspan']
+            df_alignments = df['alignment']
+            df['col_start'] = None
+            df['col_end'] = None
+            row_idx = 0
+            df['row_start'] = None
+            df['row_end'] = None
+            for num_cols in self.num_cols_per_row:
+                col_count = 0
+                num_values_in_col = 0
+
+                while num_values_in_col < num_cols:
+                    df.loc[df_idx, 'row_start'] = row_idx
+                    df.loc[df_idx, 'row_end'] = row_idx + 1
+
+                    if df_colspans[df_idx] == 1:
+                        df.loc[df_idx, 'col_start'] = col_count
+                        df.loc[df_idx, 'col_end'] = col_count + 1
+                        col_count += 1
+                    elif df_colspans[df_idx] > 1:
+                        if df_alignments[df_idx] == Cell.TEXT_ALIGN_LEFT:
+                            df.loc[df_idx, 'col_start'] = col_count
+                            df.loc[df_idx, 'col_end'] = col_count + 1
+                        elif df_alignments[df_idx] == Cell.TEXT_ALIGN_CENTER:
+                            location = col_count + df_colspans[df_idx] // 2
+                            df.loc[df_idx, 'col_start'] = location
+                            df.loc[df_idx, 'col_end'] = location + 1
+                        else:
+                            location = col_count + df_colspans[df_idx]
+                            df.loc[df_idx, 'col_start'] = location
+                            df.loc[df_idx, 'col_end'] = location + 1
+                        col_count += df_colspans[df_idx]
+                    else:
+                        raise ValueError('Invalid colspan value')
+                    num_values_in_col += 1
+                    df_idx += 1
+
+                row_idx += 1
+
+        col_nums()
+
+        self.values_start_col = \
+            df.iloc[np.where(df['amount'].notnull())]['col_start'].min()
+        self.values_end_col = \
+            df.iloc[np.where(df['amount'].notnull())]['col_end'].max()
+        self.values_start_row = \
+            df.iloc[np.where(df['amount'].notnull())]['row_start'].min()
+        self.values_end_row = \
+            df.iloc[np.where(df['amount'].notnull())]['row_end'].max()
+
+    def make_table(self):
+
+        start_row_amounts = (self.df[self.df['year'].notnull()]
+                                    ['row_start']).max()
+        selected = self.df[['row_start', 'row_headings',
+                            'col_start', 'amount']].copy()
+        selected = selected[selected.row_start > start_row_amounts]
+
+        # Not sure why this is happening. It looks like we're using
+        # df.loc[] as required to not get this warning, but we're
+        # still getting it. Remove it for now.
+        mode_chained_assignment = pd.get_option('mode.chained_assignment')
+        pd.set_option('mode.chained_assignment', None)
+
+        # Pivot so that we have:
+        # - row headings as row names
+        # - start columns as column names
+        # - amounts as values
+        # in the table.
+        pivoted = []
+        for name, group in selected.groupby('row_start'):
+            # The row heading is at a different index,
+            # compared to the row values.
+            single_row_heading = \
+                '\n'.join(group[group.row_headings.notnull()].row_headings)
+            group.loc[:, 'row_headings'] = single_row_heading
+
+            # Pivot the non-null amounts.
+            # We keel all the pivoted dataframes, so we can
+            # combine them together later. This will be
+            # more efficient.
+            nonzero_amounts = group[group.amount.notnull()].copy()
+            pivoted.append(nonzero_amounts.pivot_table(index='row_headings',
+                                                       columns='col_start',
+                                                       values='amount'))
+
+        # Reset the SettingWithCopyWarning message
+        pd.set_option('mode.chained_assignment', mode_chained_assignment)
+
+        # Combine pivoted dataframes together
+        combined = pivoted[0].append(pivoted[1:])
+        print(f'combined: {combined}')
+
+        # If adjacent column names are 1 value off, combine them.
+        # Let's see if this heuristic works for all tables.
+        def group_columns(cols, diff=1):
+            col_groups = []
+            last_col = cols[0]
+            group = (last_col, last_col)
+            for col in cols[1:]:
+                if last_col + diff >= col:
+                    group = (last_col, col)
+                else:
+                    col_groups.append(group)
+                    last_col = col
+                    group = (last_col, last_col)
+            col_groups.append(group)
+
+            return col_groups
+
+        col_groups = group_columns(combined.columns.astype('int').values,
+                                   diff=1)
+        print(f'columns: {col_groups}')
+
+        def merge_columns(df, col_groups):
+            def merge_func(x, y):
+                if x is None or np.isnan(x):
+                    return y
+                if y is None or np.isnan(y):
+                    return x
+                raise ValueError('Both columns contain values - '
+                                 'cannot merge!!', x, y)
+
+            merged = []
+            for start, end in col_groups:
+                start_col = np.argwhere(df.columns.values == start)[0][0]
+                end_col = np.argwhere(df.columns.values == end)[0][0]
+                col_values = df.iloc[:, start_col]
+                for col in range(start_col+1, end_col+1):
+                    col_values = \
+                        col_values.combine(df.iloc[:, col], merge_func)
+                merged.append(col_values)
+
+            merged = pd.concat(merged, axis=1)
+            return merged
+
+        merged = merge_columns(combined, col_groups)
+        print(merged)
+        sys.exit(0)
 
     def cell_data(self):
         df = self.df
@@ -85,37 +252,35 @@ class Table():
         def update_span(cell, type_):
             try:
                 return int(cell[type_])
-            except KeyError as e:
+            except KeyError:
                 return 1
 
-        df['rowspan'] = df['cell'].apply(lambda cell_tag: update_span(cell_tag, 'rowspan'))
-        df['colspan'] = df['cell'].apply(lambda cell_tag: update_span(cell_tag, 'colspan'))
+        df['rowspan'] = df['cell'].apply(lambda cell_tag:
+                                         update_span(cell_tag, 'rowspan'))
+        df['colspan'] = df['cell'].apply(lambda cell_tag:
+                                         update_span(cell_tag, 'colspan'))
 
         df['text'] = df['cell'].apply(lambda cell_tag:
-                                          str(cell_tag.text).strip()) \
+                                      str(cell_tag.text).strip()) \
                                .str.replace('\xa0', '', flags=re.MULTILINE) \
                                .str.replace('\n', '', flags=re.MULTILINE)
 
-
     def create_dataframe(self):
-        # import pdb; pdb.set_trace()
         df_input = {'row': [], 'cell': []}
-        idx = 0
+        self.num_cols_per_row = []
         for row in self.rows:
+            self.num_cols_per_row.append(len(row.cells))
             for cell in row.cells:
                 df_input['row'].append(row.row_tag)
                 df_input['cell'].append(cell.cell_tag)
         return pd.DataFrame(data=df_input)
 
-
     def shorten(self):
         self.tags()
         self.attrs()
 
-
     def all_tags(self):
         return self.table_tag.find_all(True)
-
 
     def add_style_attr_to_td(self):
         tds = self.table_tag('td')
@@ -129,7 +294,6 @@ class Table():
                     alignment = matches.group(1)
             td['style'] = f'text-align:{alignment}'
 
-
     def attrs(self):
         tags = self.all_tags()
         for tag in tags:
@@ -138,7 +302,6 @@ class Table():
                 if attr not in ['rowspan', 'colspan', 'style']:
                     del tag[attr]
 
-
     def tags(self):
         table_tag_names = set(['table', 'th', 'tr', 'td'])
         all_tag_names = set(map(lambda t: t.name, self.all_tags()))
@@ -146,7 +309,7 @@ class Table():
         for tag_name in remove_tag_names:
             tags = self.table_tag.find_all(tag_name)
             for tag in tags:
-                tag.unwrap() # keep the content, but remove the surrounding tag
+                tag.unwrap()  # remove the surrounding tag from content
 
 
 def create_table():
