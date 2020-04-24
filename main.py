@@ -17,12 +17,18 @@ if __name__ == '__main__':
     switcher = {
         'extract_tables': extract_tables,
         'check_hand_created_samples': check_hand_created_samples,
-	    'generate_samples': generate_samples,
+        'generate_samples': generate_samples,
         'get_10Ks':       get_10Ks,
         'get_companies':  get_companies,
         'filter':         filter_data,
         'create_table':     create_table,
     }
     func = switcher.get(function_, lambda: "nothing")
-    func()
-
+    if len(sys.argv) > 2:
+        if function_ == 'create_table':
+            table = func(*sys.argv[2:])
+            print(table.to_json())
+        else:
+            func(*sys.argv[2:])
+    else:
+        func()
