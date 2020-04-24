@@ -30,26 +30,20 @@ class Table():
         self.df = self.create_dataframe()
         self.cell_data()
         self.value_locations()
-        self.make_table()
-        with pd.option_context('display.max_rows', None,
-                               'display.max_columns', None):
-            print(self.df)
-            print(f'values_start_row: {self.values_start_row} '
-                  f'values_end_row:   {self.values_end_row}')
-            print(f'values_start_col: {self.values_start_col} '
-                  f'values_end_col: {self.values_end_col}')
-
-        self.build_table()
-        sys.exit(0)
+        self.table = self.build_table()
+        # with pd.option_context('display.max_rows', None,
+        #                        'display.max_columns', None):
+        #     print(self.df)
+        #     print(f'values_start_row: {self.values_start_row} '
+        #           f'values_end_row:   {self.values_end_row}')
+        #     print(f'values_start_col: {self.values_start_col} '
+        #           f'values_end_col: {self.values_end_col}')
 
     def add_rows(self):
         rows = []
         for row_tag in self.table_tag.find_all('tr'):
             rows.append(Row(row_tag))
         return rows
-
-    def build_table(self):
-        pass
 
     def value_locations(self):
         df = self.df
@@ -147,7 +141,7 @@ class Table():
         self.values_end_row = \
             df.iloc[np.where(df['amount'].notnull())]['row_end'].max()
 
-    def make_table(self):
+    def build_table(self):
 
         start_row_amounts = (self.df[self.df['year'].notnull()]
                                     ['row_start']).max()
@@ -188,7 +182,6 @@ class Table():
 
         # Combine pivoted dataframes together
         combined = pivoted[0].append(pivoted[1:])
-        print(f'combined: {combined}')
 
         # If adjacent column names are 1 value off, combine them.
         # Let's see if this heuristic works for all tables.
@@ -209,7 +202,6 @@ class Table():
 
         col_groups = group_columns(combined.columns.astype('int').values,
                                    diff=1)
-        print(f'columns: {col_groups}')
 
         def merge_columns(df, col_groups):
             def merge_func(x, y):
@@ -234,8 +226,80 @@ class Table():
             return merged
 
         merged = merge_columns(combined, col_groups)
+
+        def find_dollar_multiplier(row_headings):
+            bools = row_headings.dropna(axis=0)['row_headings'] \
+                                .str.contains('Dollar', case=False)
+
+            dollar_mult_map = {'hundred': 100,
+                               'thousand': 1_000.,
+                               'million': 1_000_000,
+                               'billion': 1_000_000_000}
+
+            dollar_multiplier_str = row_headings[bools]['row_headings'] \
+                .values[0].lower()
+            for key in dollar_mult_map.keys():
+                if key in dollar_multiplier_str:
+                    return bools, dollar_mult_map[key]
+            else:
+                raise ValueError('Dollar multiplier not found !!')
+
+        def col_headings(start_row_amounts, num_cols, df):
+            selected = self.df[['row_start', 'row_headings',
+                                'col_start', 'amount', 'year']].copy()
+            selected = selected[selected.row_start <=
+                                start_row_amounts]
+
+            row_headings = selected[['row_start', 'row_headings']].copy()
+            row_headings = row_headings.dropna(axis=0)
+            dollar_str_bools, dollar_mult = \
+                find_dollar_multiplier(row_headings)
+            row_headings = row_headings[~dollar_str_bools]
+            num_row_headings = len(row_headings)
+
+            year = selected[['row_start', 'year']].copy()
+            year = year.dropna(axis=0)
+            num_years = len(year)
+
+            if (num_cols % num_row_headings != 0) or \
+               (num_cols % num_years != 0) or \
+               ((num_row_headings > num_years) and
+                (num_row_headings % num_years != 0)) or \
+               ((num_row_headings < num_years) and
+                    (num_years % num_row_headings != 0)):
+                raise ValueError('Invalid number of columns vs col headings')
+
+            def merge_col_headings(rh, years):
+                col_headings = []
+                for idx in range(len(years)):
+                    col_headings.append(rh[idx] + '\n' + str(int(years[idx])))
+                return col_headings
+
+            if num_row_headings < num_years:
+                years = year.year.values
+                mult = num_years // num_row_headings
+                rh = row_headings.row_headings \
+                                 .apply(lambda x: [x]*mult).tolist()
+                rh = [z for x in rh for z in x]
+                return merge_col_headings(rh, years)
+            elif num_row_headings > num_years:
+                rh = row_headings.row_headings.values
+                mult = num_row_headings // num_years
+                years = years.apply(lambda x: [x]*mult).tolist()
+                years = [z for x in years for z in x]
+                return merge_col_headings(rh, years)
+            else:
+                return merge_col_headings(row_headings.row_headings.values,
+                                          years)
+            raise ValueError('Should not come here - ever !!')
+
+        column_headings = \
+            col_headings(start_row_amounts,
+                         merged.shape[1],
+                         self.df)
+        merged.columns = column_headings
         print(merged)
-        sys.exit(0)
+        return merged
 
     def cell_data(self):
         df = self.df
@@ -314,7 +378,6 @@ class Table():
 
 def create_table():
     table = Table('./data/extract/samples/html/html_input/1.html')
-    print(table.rows)
 
 
 if __name__ == '__main__':
