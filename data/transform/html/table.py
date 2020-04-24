@@ -1,9 +1,9 @@
-import sys
 import re
 from utils.file import read_file
 from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
+import json
 from .cell import Cell  # text_align_attr
 from .row import Row
 
@@ -165,7 +165,7 @@ class Table():
             # The row heading is at a different index,
             # compared to the row values.
             single_row_heading = \
-                '\n'.join(group[group.row_headings.notnull()].row_headings)
+                ' '.join(group[group.row_headings.notnull()].row_headings)
             group.loc[:, 'row_headings'] = single_row_heading
 
             # Pivot the non-null amounts.
@@ -375,10 +375,18 @@ class Table():
             for tag in tags:
                 tag.unwrap()  # remove the surrounding tag from content
 
+    def to_json(self):
+        '''Converts dataframe table to JSON'''
+        # 'split' orientation saves the most amount of space
+        # on disk.
+        return self.table.to_json(orient='split')
 
-def create_table():
-    table = Table('./data/extract/samples/html/html_input/1.html')
+
+def create_table(filename):
+    return Table(filename)
 
 
 if __name__ == '__main__':
-    create_table('./data/extract/samples/html/html_input/1.html')
+    table = create_table('./data/extract/samples/html/html_input/1.html')
+    print(f'table.table: {table.table}')
+    print(f'JSON: {table.to_json()}')
