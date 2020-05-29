@@ -1,6 +1,9 @@
 # Ignore data directory and backup file
 samples/
 
+# Ignore files produced by Pillow
+out.*
+
 # Ignore HTML files
 *.html
 *.htm
