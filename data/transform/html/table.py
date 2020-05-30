@@ -150,7 +150,7 @@ class Table():
         selected = selected[selected.row_start > start_row_amounts]
 
         # Not sure why this is happening. It looks like we're using
-        # df.loc[] as required to not get this warning, but we're
+        # df.loc[] as required to not get SettingWithCopy warning, but we're
         # still getting it. Remove it for now.
         mode_chained_assignment = pd.get_option('mode.chained_assignment')
         pd.set_option('mode.chained_assignment', None)
