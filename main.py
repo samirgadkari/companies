@@ -7,6 +7,9 @@ from data.generate.generate import check_hand_created_samples
 from data.generate.generate import generate_samples
 # from data.transform.html import html
 from data.transform.html.table import create_table
+from data.transform.html.to_image import html_to_image
+from data.extract.text_from_image import image_to_data
+
 
 if __name__ == '__main__':
     try:
@@ -21,7 +24,9 @@ if __name__ == '__main__':
         'get_10Ks':       get_10Ks,
         'get_companies':  get_companies,
         'filter':         filter_data,
-        'create_table':     create_table,
+        'create_table':   create_table,
+        'html_to_image':  html_to_image,
+        'image_to_data':  image_to_data,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
