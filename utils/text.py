@@ -13,7 +13,7 @@ def remove_single_nonletters(text):
     text = text.strip()
     if (len(text) == 1) and \
        (text[0] == '$'):
-        return ''
+        return None
     else:
         return text
 
