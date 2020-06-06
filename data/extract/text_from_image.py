@@ -1,5 +1,4 @@
 import io
-import sys
 from PIL import Image
 import pytesseract
 import numpy as np
@@ -7,12 +6,14 @@ import pandas as pd
 from utils.text import (amount, remove_single_nonletters)
 
 
-def col_right_pos(df):
+def tabularize_amounts(df):
     '''
     Use their right positional value to group
     the data into the correct columns.
     Since our columns have numbers in them,
     we're going to assume they're right-justified.
+    Most of the tables have right-justified numbers,
+    but we cannot guarantee it.
     '''
     df2 = df.copy()
     df2 = df2[['line_num', 'right', 'amount']]
@@ -23,7 +24,6 @@ def col_right_pos(df):
     grouped = df2.groupby('line_num')
     max_num_columns = 0
     for name, group in grouped:
-        # print(f'name: {name}\n{group}')
         if len(group) > max_num_columns:
             max_num_columns = len(group)
 
@@ -67,8 +67,45 @@ def col_right_pos(df):
 
     tupled = tupled.apply(move_values,
                           axis=1)
-    import pdb; pdb.set_trace()
-    sys.exit(0)
+    out_df = tupled.applymap(lambda x: x[1] if x is not None else None)
+    return out_df
+
+
+def leftmost_amount_pos(df):
+    df2 = df[['left', 'amount']]
+    leftmost_pos = df2[df2.amount.notnull()].left.min()
+    return leftmost_pos
+
+
+def rightmost_text_pos(df):
+    df2 = df[['right', 'amount']]
+    rightmost_pos = df2[df2.amount.isnull()].right.max()
+    return rightmost_pos
+
+
+def move_years(df, col_headings):
+    try:
+        years = df.iloc[0].apply(lambda x: int(x))
+    except ValueError as e:
+        print(e)
+        print('Could not convert first row to years')
+        return df, col_headings
+
+    years_range = range(1990, 2200)
+    data_are_years = \
+        len(df.iloc[0]) == \
+        years.apply(lambda x: x in years_range).sum()
+
+    if not data_are_years:
+        return df, col_headings
+
+    multiplier = len(years) // len(col_headings)
+    headings = []
+    for i in range(0, len(years)):
+        headings.append(
+            col_headings[i // multiplier] + ' ' + str(years[i]))
+
+    return df.iloc[1:], headings
 
 
 def image_to_data(filename):
@@ -94,43 +131,60 @@ def image_to_data(filename):
 
     df['amount'] = df['text'].apply(amount)
 
-    col_avg_right_pixel_position = col_right_pos(df)
+    df_amounts = tabularize_amounts(df)
 
-    last_top = None
+    left_amount_pos = leftmost_amount_pos(df)
 
-    def top_pixel_group_func(x):
-        nonlocal last_top
+    col_headings = []
+    row_headings = []
+    grouped = df.groupby('line_num')
+    insert_empty_row_at = []
 
-        _, top, _, _, _, _, _ = df.loc[x]
-        if last_top is None:
-            last_top = top
-            return top
-        elif np.abs(last_top - top) <= 10:
-            return last_top
+    # We range over the length of the group keys since the sequence
+    # of the keys in a dictionary could be different,
+    # and we want our table rows in order.
+    for i in range(1, len(grouped.groups.keys()) + 1):
+        group = grouped.get_group(i)
+        right_text_pos = rightmost_text_pos(group)
+        texts = group[group.amount.isnull()]
+        if right_text_pos > left_amount_pos:
+            cell_texts = [texts.iloc[0].text]
+            for i in range(len(texts) - 1):
+                if np.abs(texts.iloc[i].right -
+                          texts.iloc[i+1].left) < 10:
+                    cell_texts.append(texts.iloc[i+1].text)
+                else:
+                    if not ((len(cell_texts) == 1) and
+                            (len(cell_texts[0]) == 0)):
+                        col_headings.append(" ".join(cell_texts))
+                    cell_texts = [texts.iloc[i+1].text]
         else:
-            last_top = top
-            return top
+            row_headings.append(" ".join(texts.text))
+        amounts = group[group.amount.notnull()]
+        if len(amounts) == 0:
+            insert_empty_row_at.append(i - 1)
 
-    rows = []
-    grouped = df.groupby(by=top_pixel_group_func)
-    for name, group in grouped:
-        amounts = group[group['amount'].notnull()]
-        texts = group[group['amount'].isnull()]
-        # print(f'name: {name}\ngroup: {group}\ntexts: {texts}\n'
-        #       f'amounts: {amounts}\n')
-        if len(amounts) > 0:
-            row = pd.DataFrame(data=amounts['amount']).T
-            row.index = [' '.join(texts['text'].values)]
-            row.columns = ['col' + str(i)
-                           for i in range(len(amounts))]
-            rows.append(row)
-            # print(f'row: {row}\n\n')
-        else:
-            # print(f'col_headings: {" ".join(texts)}')
-            pass
+    empty_row = [None] * df_amounts.shape[1]
+    for i in insert_empty_row_at:
 
-    table = rows[0].append(rows[1:])
-    print(table)
+        # Since we cannot insert rows, but we can insert columns,
+        # transpose the dataframe, insert the row as a column,
+        # and then transpose the dataframe back.
+        df_amounts = df_amounts.T
+        df_amounts.insert(i,
+                          str(i) + " added",
+                          empty_row,
+                          allow_duplicates=True)
+        df_amounts = df_amounts.T
+
+        # Reset index to remove the names of the columns inserted.
+        df_amounts.reset_index()
+
+    df_amounts, col_headings = move_years(df_amounts, col_headings)
+    df_amounts = \
+        df_amounts.set_index(pd.Series(row_headings))
+    df_amounts.columns = col_headings
+    print(df_amounts)
 
 
 if __name__ == '__main__':
