@@ -42,7 +42,17 @@ def tabularize_amounts(df):
                                      axis=0)
 
     def move_values(row):
+        '''
+        For a row with null values in it,
+        compare each cell position to the average position values,
+        and place the cell in the correct position.
+        If this is not done, a row might contain these values:
+        Row heading 1       1.2   2.3   NaN   NaN
+        instead of:
+        Row heading 1       NaN   1.2   NaN   2.3
+        '''
 
+        # Ignore rows with no null values in it.
         if row.isnull().sum() == 0:
             return row
 
@@ -53,6 +63,8 @@ def tabularize_amounts(df):
             if not isinstance(row[loc], tuple):
                 continue
 
+            # Compare the position to the average positions of
+            # each column to find the best column for this value.
             best_col = -1
             min_dist = np.Inf
             for col in range(len(averages)):
@@ -67,17 +79,26 @@ def tabularize_amounts(df):
 
     tupled = tupled.apply(move_values,
                           axis=1)
-    out_df = tupled.applymap(lambda x: x[1] if x is not None else None)
+    out_df = tupled.applymap(lambda x: x[1] if x is not None else np.nan)
     return out_df
 
 
 def leftmost_amount_pos(df):
+    '''
+    Returns the leftmost pixel position of any non-null amount
+    in the entire table.
+    '''
     df2 = df[['left', 'amount']]
     leftmost_pos = df2[df2.amount.notnull()].left.min()
     return leftmost_pos
 
 
 def rightmost_text_pos(df):
+    '''
+    Returns the rightmost text position of any text cell
+    in the entire table.
+    A text cell is found when the amount is NaN.
+    '''
     df2 = df[['right', 'amount']]
     rightmost_pos = df2[df2.amount.isnull()].right.max()
     return rightmost_pos
@@ -146,6 +167,7 @@ def image_to_data(filename):
     for i in range(1, len(grouped.groups.keys()) + 1):
         group = grouped.get_group(i)
         right_text_pos = rightmost_text_pos(group)
+
         texts = group[group.amount.isnull()]
         if right_text_pos > left_amount_pos:
             cell_texts = [texts.iloc[0].text]
@@ -184,6 +206,9 @@ def image_to_data(filename):
     df_amounts = \
         df_amounts.set_index(pd.Series(row_headings))
     df_amounts.columns = col_headings
+
+    # Make sure to replace any None values in the table with np.NaN
+    df_amounts.fillna(value=np.nan, inplace=True)
     print(df_amounts)
 
 
