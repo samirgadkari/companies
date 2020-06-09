@@ -215,9 +215,10 @@ def image_to_data(filename):
     grouped = df.groupby('line_num')
     insert_empty_row_at = []
 
-    # We range over the length of the group keys since the sequence
-    # of the keys in a dictionary could be different,
-    # and we want our table rows in order.
+    # We range over the length of the group keys since
+    # we want to use the row number to compare the
+    # right column value against the next row's
+    # left column value.
     for i in range(1, len(grouped.groups.keys()) + 1):
         group = grouped.get_group(i).copy()
 
