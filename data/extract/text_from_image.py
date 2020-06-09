@@ -271,7 +271,6 @@ def image_to_data(filename):
     # different tables that may have different multipliers.
     # applymap() function applies to all cells.
     # After applying, revert back for those cells that are percentages.
-    idx = list(df_amounts.index)
     def update_non_percent_amounts(row):
         idx = row.name
         if idx.endswith('(percent)'):
