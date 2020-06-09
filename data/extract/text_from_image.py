@@ -129,7 +129,61 @@ def move_years(df, col_headings):
     return df.iloc[1:], headings
 
 
+def find_dollar_multiplier(cell_texts):
+
+    cell_texts = " ".join([s.lower() for s in cell_texts])
+    if "dollar" in cell_texts:
+        multiplier_dict = {'thousands': 1_000.0,
+                           'millions':  1_000_000.0,
+                           'billions':  1_000_000_000.0}
+        for key, value in multiplier_dict.items():
+            if key in cell_texts:
+                dollar_multiplier = value
+                return dollar_multiplier
+
+    # Return dollar multiplier of 1.0 if no nultiplier found
+    return 1.0
+
+
+def flag_percentage_row(df):
+
+    non_null_amounts = df[df['amount'].notnull()]
+
+    # If there are no amounts, return the original dataframe
+    if len(non_null_amounts) == 0:
+        return df
+
+    first_value_idx = non_null_amounts.index[0]
+
+    # If there are only amounts, and no row headings,
+    # return original dataframe
+    if first_value_idx == 0:
+        return df
+
+    # Get the text value of the first amount
+    text = df.loc[first_value_idx].text
+
+    # If the end of the text value is %,
+    # append the '(percent)' flag at the end
+    # of the row heading
+    if text[len(text) - 1] == '%':
+        # import pdb; pdb.set_trace()
+
+        replacement_text = df.loc[first_value_idx - 1] \
+                             .text + '(percent)'
+        df.loc[first_value_idx - 1, 'text'] = replacement_text
+
+    return df
+
+
 def image_to_data(filename):
+    def to_json(df):
+        '''Converts dataframe table to JSON.
+        Split orientation saves the most amount of space
+        on disk.
+        '''
+        return df.to_json(orient='split')
+
     # Get verbose data including boxes, confidences, line and page numbers
     data = pytesseract.image_to_data(Image.open(filename))
 
@@ -165,7 +219,9 @@ def image_to_data(filename):
     # of the keys in a dictionary could be different,
     # and we want our table rows in order.
     for i in range(1, len(grouped.groups.keys()) + 1):
-        group = grouped.get_group(i)
+        group = grouped.get_group(i).copy()
+
+        group = flag_percentage_row(group)
         right_text_pos = rightmost_text_pos(group)
 
         texts = group[group.amount.isnull()]
@@ -180,6 +236,7 @@ def image_to_data(filename):
                             (len(cell_texts[0]) == 0)):
                         col_headings.append(" ".join(cell_texts))
                     cell_texts = [texts.iloc[i+1].text]
+            dollar_multiplier = find_dollar_multiplier(cell_texts)
         else:
             row_headings.append(" ".join(texts.text))
         amounts = group[group.amount.notnull()]
@@ -194,7 +251,7 @@ def image_to_data(filename):
         # and then transpose the dataframe back.
         df_amounts = df_amounts.T
         df_amounts.insert(i,
-                          str(i) + " added",
+                          str(i),
                           empty_row,
                           allow_duplicates=True)
         df_amounts = df_amounts.T
@@ -209,7 +266,25 @@ def image_to_data(filename):
 
     # Make sure to replace any None values in the table with np.NaN
     df_amounts.fillna(value=np.nan, inplace=True)
+
+    # Multiply amounts with dollar multiplier so that we can compare
+    # different tables that may have different multipliers.
+    # applymap() function applies to all cells.
+    # After applying, revert back for those cells that are percentages.
+    idx = list(df_amounts.index)
+    def update_non_percent_amounts(row):
+        idx = row.name
+        if idx.endswith('(percent)'):
+            return row
+        else:
+            return row * dollar_multiplier
+
+    df_amounts = df_amounts.apply(update_non_percent_amounts, axis=1)
+    index = pd.Series(df_amounts.index) \
+        .apply(lambda x: x[:-9] if x.endswith('(percent)') else x)
+    df_amounts.index = index
     print(df_amounts)
+    # print(to_json(df_amounts))
 
 
 if __name__ == '__main__':
