@@ -6,6 +6,9 @@ NUMBER_RE = re.compile(r'^\-?[0-9]*\.?[0-9]*$')
 
 
 def number(text):
+    if len(text) == 1 and text[0] == '-':
+        return False
+
     return NUMBER_RE.search(text) is not None
 
 

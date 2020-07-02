@@ -1,14 +1,15 @@
 import sys
-from data.get.get_10Ks_selenium import get_10Ks
+from get_10Ks import get_10Ks
 from data.get.get_companies_in_sector import get_companies
 from data.extract.extract_tables import extract_tables
+from extract import extract_single_table, extract_all_tables
 from data.extract.filter import filter_data
 from data.generate.generate import check_hand_created_samples
 from data.generate.generate import generate_samples
-# from data.transform.html import html
 from data.transform.html.table import create_table
 from data.transform.html.to_image import html_to_image
 from data.extract.text_from_image import image_to_data
+from tesseract import text_to_json
 
 
 if __name__ == '__main__':
@@ -27,6 +28,9 @@ if __name__ == '__main__':
         'create_table':   create_table,
         'html_to_image':  html_to_image,
         'image_to_data':  image_to_data,
+        'text_to_json':   text_to_json,
+        'extract_single_table': extract_single_table,
+        'extract_all_tables': extract_all_tables,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
