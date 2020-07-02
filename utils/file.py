@@ -29,4 +29,4 @@ def write_json_to_file(fn, data):
 
 
 def get_filenames(*paths):
-    return glob.iglob(os.path.join(*paths))
+    return glob.iglob(os.path.join(paths))
