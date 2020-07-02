@@ -176,7 +176,8 @@ def flag_percentage_row(df):
     return df
 
 
-def image_to_data(filename):
+def image_to_data(filename, table_type):
+    print(f'In image_to_data, table_type: {table_type}')
     def to_json(df):
         '''Converts dataframe table to JSON.
         Split orientation saves the most amount of space
@@ -190,6 +191,10 @@ def image_to_data(filename):
     # Convert data to dataframe
     df = pd.read_csv(io.BytesIO(str.encode(data)), encoding='utf8',
                      delimiter='\t')
+
+    df['bottom'] = df.top + df.height
+
+    import pdb; pdb.set_trace()
 
     # Select columns of dataframe, and drop rows that have any nulls.
     df = df[['line_num', 'word_num', 'top', 'left', 'width', 'text']] \
@@ -283,8 +288,7 @@ def image_to_data(filename):
     index = pd.Series(df_amounts.index) \
         .apply(lambda x: x[:-9] if x.endswith('(percent)') else x)
     df_amounts.index = index
-    print(df_amounts)
-    # print(to_json(df_amounts))
+    return to_json(df_amounts)
 
 
 if __name__ == '__main__':
