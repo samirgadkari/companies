@@ -29,4 +29,12 @@ def write_json_to_file(fn, data):
 
 
 def get_filenames(*paths):
-    return glob.iglob(os.path.join(paths))
+    paths = list(paths)
+    print(f'paths: {paths}')
+    return glob.iglob(os.path.join(paths[0], *paths[1:]))
+
+
+def ensure_dir_exists(dirname):
+    print(f'dirname: {dirname}')
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)

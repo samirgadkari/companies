@@ -10,6 +10,7 @@ from data.transform.html.table import create_table
 from data.transform.html.to_image import html_to_image
 from data.extract.text_from_image import image_to_data
 from tesseract import text_to_json
+from ml.edit_tables import edit_all_tables
 
 
 if __name__ == '__main__':
@@ -31,6 +32,7 @@ if __name__ == '__main__':
         'text_to_json':   text_to_json,
         'extract_single_table': extract_single_table,
         'extract_all_tables': extract_all_tables,
+        'edit_all_tables': edit_all_tables,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
