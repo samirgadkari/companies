@@ -1,10 +1,11 @@
 import os
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from utils.environ import extracted_tables_dir, \
                           cleaned_tags_dir
 from utils.file import get_filenames, write_file, \
                        read_file, ensure_dir_exists
+from utils.html import tag_actions
 
 
 attrs_regex = re.compile(r'\w+\[(.*?[,\\])]')
@@ -30,32 +31,25 @@ def clean_tag(tag, directions):
         tag.decompose()
 
 
-def remove_tags(table_tag):
+def remove_comments(table_tag):
+    comments = table_tag.find_all(text=lambda t: isinstance(t, Comment))
+    for comment in comments:
+        comment.extract()  # Note that decompose does not work for Comments.
 
-    # tag.unwrap(): removes the tag and it's attributes,
-    # but keeps the text inside.
-    # tag.decompose(): completely removes a tag and it's contents.
-    # tag.clear(): removes just the contents (insides) of the tag,
-    # not the tag itself.
-    clean_tags = {
-        'html':          'untouched',
-        'body':          'untouched',
-        'table':         'untouched',
-        'tr':            'remove_attrs_except[rowspan, colspan, style]',
-        'td':            'remove_attrs_except[rowspan, colspan, style]',
-        'div':           'unwrap',
-        'font':          'unwrap',
-        'p':             'unwrap',
-        'br':            'decompose',
-    }
+
+def remove_tags(table_tag):
 
     # We cannot use a recursive approach since the dictionary
     # containing the tags will change as we update them.
     # Instead, go through each type of tag and clean them.
-    for tag_name in clean_tags.keys():
+    for tag_name in tag_actions.keys():
         selected_tags = table_tag.find_all(tag_name)
         for tag in selected_tags:
-            clean_tag(tag, clean_tags[tag_name])
+            clean_tag(tag, tag_actions[tag_name])
+
+    # Since we're not using tag name to find the comments,
+    # this routine is separated from the code above.
+    remove_comments(table_tag)
 
     # Any changes such as removing tags may cause two
     # NavigableString tags to come next to each other.
