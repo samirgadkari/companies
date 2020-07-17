@@ -9,7 +9,9 @@ from utils.html import get_attr_names_values, find_numbers
 def update_tag_names(tag, tag_names):
 
     for tag in tag.descendants:
-        tag_names.add(tag.name)
+        name = tag.name
+        if name is not None:  # this can happen for NavigableString
+            tag_names.add(name)
     return tag_names
 
 
@@ -18,15 +20,13 @@ def update_tag_attrs_names_values(tag, tag_attr_names, tag_attr_values):
     for tag in tag.descendants:
         for name, value in get_attr_names_values(tag):
 
-            tag_attr_names.update(name)
+            tag_attr_names.add(name)
             if isinstance(value, list):
                 subnames, subvalues = zip(*value)
                 tag_attr_names.update(subnames)
                 tag_attr_values.update(subvalues)
             else:
-                print(f'values: {value}')
-                print(f'type(values): {type(value)}')
-                tag_attr_values.update(value)
+                tag_attr_values.add(value)
 
 
 def convert_numbers(tag, tag_text_numbers):
@@ -68,11 +68,14 @@ def find_all_html_table_encodings():
           '#attrs: {num_tag_attr_names}\n'
           '#values: {num_tag_attr_values}\n'
           '#numbers: {num_tag_text_numbers}\n')
-    combined_set = set().update(tag_names) \
-                        .update(tag_attr_names) \
-                        .update(tag_attr_values) \
-                        .update(tag_text_numbers)
+    combined_set = set()
+    combined_set.update(tag_names)
+    combined_set.update(tag_attr_names)
+    combined_set.update(tag_attr_values)
+    combined_set.update(tag_text_numbers)
     print(f'total_unique_values: {len(combined_set)}')
+
+    import pdb; pdb.set_trace()
 
     # Encode tag names starting at 100000
     # Encode attr names starting at 200000
