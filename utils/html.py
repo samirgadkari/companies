@@ -1,7 +1,12 @@
 import re
+from bs4 import NavigableString
 
 regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
+regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
+regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
+regex_number = re.compile(r'[\d\,\.]+', re.MULTILINE)
+
 
 # tag.unwrap(): removes the tag and it's attributes,
 # but keeps the text inside.
@@ -86,3 +91,55 @@ def find_descendant_tag_names(descendants):
         descendant_tag_names.add(tag.name)
 
     return descendant_tag_names
+
+
+def get_attr_names_values(tag):
+    attr_names_values = []
+    if isinstance(tag, NavigableString):
+        return attr_names_values
+    for attr_name, attr_values in tag.attrs.items():
+        attr_values = attr_values.strip()
+        if ';' in attr_values:
+            if attr_values[-1] == ';':
+                attr_values = attr_values[:-1]
+
+            attr_subnames_and_values_list = \
+                [tuple(part.split(':'))
+                 for part in attr_values.split(';')]
+            attr_subnames_and_values_list = \
+                list(map(lambda x: (x[0].strip(), x[1].strip()),
+                         attr_subnames_and_values_list))
+
+            attr_subnames_values = []
+            for sub_name, sub_value in attr_subnames_and_values_list:
+                attr_subnames_values.append((sub_name.strip(),
+                                             sub_value.strip()))
+            attr_names_values.append((attr_name.strip(),
+                                      attr_subnames_values))
+        else:
+            attr_names_values.append((attr_name.strip(),
+                                      attr_values.strip()))
+
+    return attr_names_values
+
+
+def get_start_tag_string(tag):
+
+    full_tag_str = str(tag)
+    end_tag_idx = full_tag_str.find('>')
+    if end_tag_idx == -1:
+        raise IndexError('Could not find end of tag')
+
+    return full_tag_str[:end_tag_idx+1]
+
+
+def find_numbers(text):
+    matches = regex_number.findall(text)
+    numbers_found = set()
+
+    for match in matches:
+        if match == '.':
+            continue
+        numbers_found.add(match)
+
+    return numbers_found

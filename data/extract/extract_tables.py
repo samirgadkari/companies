@@ -16,17 +16,17 @@ MIN_TABLE_SIZE = 10240  # 10KB
 
 # Get everything including the table tags.
 regex_table_for_text = re.compile(r'(<TABLE.*?>.*?<\/TABLE>)',
-                                  flags=re.DOTALL | \
+                                  flags=re.DOTALL |
                                   re.IGNORECASE)
 
 # Get everything including the table tags.
 regex_table_for_html = re.compile(r'(<TABLE.*?>.*?<\/TABLE>)',
-                                  flags=re.DOTALL | \
+                                  flags=re.DOTALL |
                                   re.IGNORECASE)
 
 regex_xbrl_file = re.compile(r'<XBRL>',
-                             flags=re.DOTALL | \
-                                   re.IGNORECASE)
+                             flags=re.DOTALL |
+                             re.IGNORECASE)
 
 num_files_extracted = 0
 num_files_extraction_error = 0
