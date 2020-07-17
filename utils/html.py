@@ -5,7 +5,7 @@ regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
 regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
 regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
-regex_number = re.compile(r'[\w\,\.]+', re.MULTILINE)
+regex_number = re.compile(r'[\d\,\.]+', re.MULTILINE)
 
 
 # tag.unwrap(): removes the tag and it's attributes,
@@ -136,7 +136,10 @@ def get_start_tag_string(tag):
 def find_numbers(text):
     matches = regex_number.findall(text)
     numbers_found = set()
+
     for match in matches:
-        set.add(match)
+        if match == '.':
+            continue
+        numbers_found.add(match)
 
     return numbers_found
