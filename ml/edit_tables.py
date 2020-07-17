@@ -8,9 +8,6 @@ from utils.file import get_filenames, write_file, \
 from utils.html import tag_actions
 
 
-attrs_regex = re.compile(r'\w+\[(.*?[,\\])]')
-
-
 def remove_tag_attrs(tag, keep_attrs):
     for attr in list(tag.attrs.keys()):
         if attr not in keep_attrs:
@@ -58,7 +55,7 @@ def remove_tags(table_tag):
     table_tag.smooth()
 
     for tag in table_tag.find_all(True):
-        if tag.name not in clean_tags.keys():
+        if tag.name not in tag_actions.keys():
             tag.decompose()
 
     table_tag.smooth()
