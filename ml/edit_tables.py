@@ -1,10 +1,10 @@
 import os
-import re
 from bs4 import BeautifulSoup, Comment
 from utils.environ import extracted_tables_dir, \
                           cleaned_tags_dir
 from utils.file import get_filenames, write_file, \
-                       read_file, ensure_dir_exists
+                       read_file, ensure_dir_exists, \
+                       file_exists
 from utils.html import tag_actions
 
 
@@ -64,13 +64,16 @@ def remove_tags(table_tag):
 def edit_all_tables():
     for filename in get_filenames(extracted_tables_dir(),
                                   '*', '10-k', '*', '*', '*'):
+        filename_suffix = filename[len(extracted_tables_dir()):]
+        out_filename = cleaned_tags_dir() + filename_suffix
+        if file_exists(out_filename):
+            continue
+
         print(f'filename: {filename}')
         table_tag = BeautifulSoup(read_file(filename), 'html.parser')
 
         remove_tags(table_tag)
 
-        filename_suffix = filename[len(extracted_tables_dir()):]
-        out_filename = cleaned_tags_dir() + filename_suffix
         out_dirname_parts = out_filename.split(os.sep)[:-1]
         ensure_dir_exists(os.path.join(os.sep, *out_dirname_parts))
 
