@@ -17,6 +17,10 @@ def copy_file(src, dst):
     write_file(dst, read_file(src))
 
 
+def file_exists(filename):
+    return os.path.isfile(filename)
+
+
 def get_json_from_file(fn):
     with open(fn, 'r') as f:
         return json.load(f)
