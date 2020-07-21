@@ -5,7 +5,7 @@ regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
 regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
 regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
-regex_number = re.compile(r'[\d\,\.]+', re.MULTILINE)
+regex_number = re.compile(r'^\$?(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
 
 
 # tag.unwrap(): removes the tag and it's attributes,
@@ -110,15 +110,13 @@ def get_attr_names_values(tag):
                 list(map(lambda x: (x[0].strip(), x[1].strip()),
                          attr_subnames_and_values_list))
 
-            attr_subnames_values = []
+            attr_names_values.append(attr_name.strip())
             for sub_name, sub_value in attr_subnames_and_values_list:
-                attr_subnames_values.append((sub_name.strip(),
-                                             sub_value.strip()))
-            attr_names_values.append((attr_name.strip(),
-                                      attr_subnames_values))
+                attr_names_values.append(sub_name.strip())
+                attr_names_values.append(sub_value.strip())
         else:
-            attr_names_values.append((attr_name.strip(),
-                                      attr_values.strip()))
+            attr_names_values.append(attr_name.strip())
+            attr_names_values.append(attr_values.strip())
 
     return attr_names_values
 
@@ -133,13 +131,23 @@ def get_start_tag_string(tag):
     return full_tag_str[:end_tag_idx+1]
 
 
-def find_numbers(text):
-    matches = regex_number.findall(text)
-    numbers_found = set()
+def get_number(text):
+    match = regex_number.fullmatch(text)
 
-    for match in matches:
-        if match == '.':
-            continue
-        numbers_found.add(match)
+    # If the whole match is not just a period, $, or comma,
+    # then we have a valid number.
+    if match is not None \
+       and match.group(0) not in ['.', '$', ',', '(', ')']:
 
-    return numbers_found
+        result = match.group(1)
+        result = result.replace(',', '') \
+            .replace('$', '') \
+            .replace('%', '')
+        if '(' in result or ')' in result:
+            result = result.replace('(', '-') \
+                .replace(')', '')
+        if len(result) == 0:
+            return False
+        return result
+    else:
+        return False
