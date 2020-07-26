@@ -6,7 +6,8 @@ regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
 regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
 regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
 regex_number = re.compile(r'^\$?(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
-
+regex_multiple_semicolons = re.compile(r'\;{2,}', re.MULTILINE)
+regex_subattr_no_value = re.compile(r'\;[^\;\:]+\;', re.MULTILINE)
 
 # tag.unwrap(): removes the tag and it's attributes,
 # but keeps the text inside.
@@ -93,31 +94,64 @@ def find_descendant_tag_names(descendants):
     return descendant_tag_names
 
 
+def remove_extra_characters(attr_values):
+
+    attr_values = regex_subattr_no_value.sub(';', attr_values)
+    attr_values = attr_values.strip()
+    attr_values = regex_multiple_semicolons.sub(';', attr_values)
+    if attr_values[-1] == ';':
+        attr_values = attr_values[:-1]
+    if attr_values[0] == ';':
+        attr_values = attr_values[1:]
+
+    return attr_values
+
+
+def get_attr_subnames_and_values(attr_name, attr_values):
+    attr_values = remove_extra_characters(attr_values)
+    attr_subnames_and_values_list = \
+        [tuple(part.split(':'))
+            for part in attr_values.split(';')]
+    attr_subnames_and_values_list = \
+        list(filter(lambda x: True if len(x) == 2 else False,
+                    attr_subnames_and_values_list))
+    try:
+        attr_subnames_and_values_list = \
+            list(map(lambda x: (x[0], x[1]),
+                     attr_subnames_and_values_list))
+    except (TypeError, IndexError) as e:
+        print(f'attr_name: {attr_name}')
+        print(f'attr_values: {attr_values}')
+        print(f'attr_subnames_and_values_list: '
+              f'{attr_subnames_and_values_list}')
+        raise e
+    return attr_subnames_and_values_list
+
+
 def get_attr_names_values(tag):
     attr_names_values = []
     if isinstance(tag, NavigableString):
         return attr_names_values
     for attr_name, attr_values in tag.attrs.items():
-        attr_values = attr_values.strip()
-        if ';' in attr_values:
-            if attr_values[-1] == ';':
-                attr_values = attr_values[:-1]
-
+        try:
+            if isinstance(attr_values, list):
+                attr_values = ' '.join(attr_values)
+            attr_values = attr_values.strip()
+        except AttributeError as e:
+            print(f'attr_name: {attr_name}')
+            print(f'attr_values: {attr_values}\n')
+            raise e
+        if ':' in attr_values:
             attr_subnames_and_values_list = \
-                [tuple(part.split(':'))
-                 for part in attr_values.split(';')]
-            attr_subnames_and_values_list = \
-                list(map(lambda x: (x[0].strip(), x[1].strip()),
-                         attr_subnames_and_values_list))
+                get_attr_subnames_and_values(attr_name, attr_values)
 
-            attr_names_values.append(attr_name.strip())
+            attr_names_values.append(attr_name)
             for sub_name, sub_value in attr_subnames_and_values_list:
-                attr_names_values.append(sub_name.strip())
-                attr_names_values.append(sub_value.strip())
+                attr_names_values.append(sub_name)
+                attr_names_values.append(sub_value)
         else:
-            attr_names_values.append(attr_name.strip())
-            attr_names_values.append(attr_values.strip())
-
+            attr_names_values.append(attr_name)
+            attr_names_values.append(attr_values)
     return attr_names_values
 
 

@@ -1,15 +1,42 @@
 import re
+import string
 
 
 years = [str(x) for x in range(1990, 2200)]
-NUMBER_RE = re.compile(r'^\-?[0-9]*\.?[0-9]*$')
+number_re = re.compile(r'^\-?[0-9]*\.?[0-9]*$')
+
+regex_punctuation = ''
+for c in string.punctuation:
+    regex_punctuation += f'\\{c}'
+split_using_punctuation_re = re.compile(r'\w+|' + f'{regex_punctuation}')
+
+
+def split_using_punctuation(s):
+    return list(map(str.strip,
+                    split_using_punctuation_re.findall(s)))
 
 
 def number(text):
     if len(text) == 1 and text[0] == '-':
         return False
 
-    return NUMBER_RE.search(text) is not None
+    return number_re.search(text) is not None
+
+
+def remove_bad_endings(text):
+    s = text
+    bad_endings = ['\n', '%']
+    while len(s) > 0 and s[-1] in bad_endings:
+        s = s[:-1]
+    # if len(s) < len(text):
+    #     print(f'       {text} => {s}')
+    return s
+
+
+def filter_bad_tokens(text):
+    if text is None or len(text) == 0 or len(text.strip()) == 0:
+        return False
+    return True
 
 
 def remove_single_nonletters(text):

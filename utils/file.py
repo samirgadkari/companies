@@ -42,3 +42,10 @@ def ensure_dir_exists(dirname):
     print(f'dirname: {dirname}')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
+
+
+def remove_files(*paths):
+    paths = list(paths)
+    for filename in glob.iglob(os.path.join(paths[0], *paths[1:]),
+                               recursive=True):
+        os.remove(filename)
