@@ -17,6 +17,10 @@ def copy_file(src, dst):
     write_file(dst, read_file(src))
 
 
+def file_exists(filename):
+    return os.path.isfile(filename)
+
+
 def get_json_from_file(fn):
     with open(fn, 'r') as f:
         return json.load(f)
@@ -38,3 +42,10 @@ def ensure_dir_exists(dirname):
     print(f'dirname: {dirname}')
     if not os.path.exists(dirname):
         os.makedirs(dirname)
+
+
+def remove_files(*paths):
+    paths = list(paths)
+    for filename in glob.iglob(os.path.join(paths[0], *paths[1:]),
+                               recursive=True):
+        os.remove(filename)

@@ -15,3 +15,7 @@ def cleaned_tags_dir():
 
 def data_dir():
     return config('DATA_DIR')
+
+
+def tokens_file():
+    return config('TOKENS_FILE')
