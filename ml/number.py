@@ -16,8 +16,8 @@ class Number(Enum):
     START_WORD_NUM = 10
 
 
-@dataclass(init=True, repr=False, eq=True, order=False,
-           unsafe_hash=False, frozen=True)
+@dataclass(init=True, repr=False, eq=False, order=False,
+           unsafe_hash=False, frozen=False)
 class NumberSequence:
     start: int
     negative: int
@@ -31,6 +31,30 @@ class NumberSequence:
             + str(self.number) + ',' \
             + str(self.percent) + ',' \
             + str(self.end) + ')'
+
+    def __iter__(self):
+        self.iter_values = [self.start, self.negative, self.number,
+                            self.percent, self.end]
+        self.iter_cur = 0
+        return self
+
+    def __next__(self):
+        if self.iter_cur >= len(self.iter_values):
+            raise StopIteration
+        result = self.iter_values[self.iter_cur]
+        self.iter_cur += 1
+        return result
+
+    def __eq__(self, o):
+        if isinstance(o, self.__class__):
+            return hash(o) == hash(self)
+        return NotImplemented
+
+    def __hash__(self):
+        # We know that tuples are hashable, so we store
+        # our data in a tuple and hash it.
+        return hash((self.start, self.negative, self.number,
+                     self.percent, self.end))
 
 
 def convert_fraction_to_whole(num):

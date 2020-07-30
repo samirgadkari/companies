@@ -25,13 +25,13 @@ def get_sequences(filename, top_tag):
         for value in values:
             # If NumberSequence, it is a number in NavigableString.
             if isinstance(value, NumberSequence):
-                num_str = value
-                if num_str in reverse_number_dict:
-                    token_seq.append(reverse_number_dict[num_str])
+                num_seq = value
+                if num_seq in reverse_number_dict:
+                    token_seq.append(reverse_number_dict[num_seq])
                 else:
                     key = f'num_{word_num}'
-                    number_dict[key] = num_str
-                    reverse_number_dict[num_str] = key
+                    number_dict[key] = num_seq
+                    reverse_number_dict[num_seq] = key
                     word_num += 1
                     token_seq.append(key)
             else:
@@ -129,6 +129,7 @@ def find_all_html_table_encodings():
     num_dirs_to_process = 3
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
+        # filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
         print(f'filename: {filename}')
         table = read_file(filename)
 
@@ -161,6 +162,7 @@ def find_all_html_table_encodings():
                                                   "tokens")
 
         find_html_table_encodings(filename, table, tokens)
+        # break
     else:
         write_tokens_file(tokens, tokens_filename, token_num)
 
@@ -174,6 +176,10 @@ def find_all_html_table_encodings():
 
     print(f'len(all_tokens): {len(all_tokens)}')
     write_tokens_file(all_tokens, all_tokens_filename, 0)
+
+
+def remove_all_encoded_files():
+    remove_files(cleaned_tags_dir(), '**', '*.encoded')
 
 
 def encode_html_table(filename, table_text, tokens):
@@ -191,11 +197,13 @@ def encode_html_table(filename, table_text, tokens):
 
     def encode(token):
         if is_number_token(token) and token in number_dict:
-            return number_dict[token]
+            return number_dict[token] + num_seq_offset
         else:
             return tokens[token]
 
-    encoded = ' '.join(map(encode, token_seq))
+    encoded = []
+    encoded = ' '.join([encoded.extend(v) for v in
+                        map(encode, token_seq)])
     with open(filename + '.encoded', 'w') as f:
         f.write(encoded)
 
