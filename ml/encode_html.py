@@ -3,41 +3,103 @@ import os
 from bs4 import BeautifulSoup, NavigableString
 from utils.file import get_filenames, read_file
 from utils.environ import cleaned_tags_dir, tokens_file
-from utils.html import get_attr_names_values, get_number
+from utils.html import get_attr_names_values
 from utils.file import file_exists, remove_files, write_json_to_file
-from utils.text import split_using_punctuation, remove_bad_endings, \
-    filter_bad_tokens
+from utils.text import split_using_punctuation
+from ml.tokens import remove_all_tokens_files, write_tokens_file, \
+    read_tokens_file, get_tokens_filename, \
+    get_token_values, flip_tokens_keys_values, is_number_token
+from ml.number import Number, convert_fraction_to_whole, \
+    number_to_sequence, get_number, NumberSequence
 
 
 def get_sequences(filename, top_tag):
-    word_num = 0
+    word_num = Number.START_WORD_NUM.value
     token_seq = []
     number_dict = {}
+    reverse_number_dict = {}
+
+    def update_seq_and_number_dict(values):
+        nonlocal word_num, token_seq, number_dict
+
+        for value in values:
+            # If NumberSequence, it is a number in NavigableString.
+            if isinstance(value, NumberSequence):
+                num_str = value
+                if num_str in reverse_number_dict:
+                    token_seq.append(reverse_number_dict[num_str])
+                else:
+                    key = f'num_{word_num}'
+                    number_dict[key] = num_str
+                    reverse_number_dict[num_str] = key
+                    word_num += 1
+                    token_seq.append(key)
+            else:
+                token_seq.append(value.strip().lower())
 
     def recurse(tag):
         nonlocal word_num, token_seq, number_dict
 
         if isinstance(tag, NavigableString):
-            words = split_using_punctuation(tag)
-            for word in words:
-                num = get_number(word)
-                if num is not False:
-                    key = f'num_{word_num}'
-                    number_dict[key] = num
-                    word_num += 1
-                    token_seq.append(key)
+            words = []
+
+            # We need to split the tag first, because part of the tag
+            # may have $1,009 for example. If we split using punctuation,
+            # we will get two words with 1 and 9 (since we're converting
+            # the 009 to a number). When we put it back we will get 19.
+            # Instead, we split the tag using spaces first, then check
+            # if it is a number (including characters $,.()%). We extract
+            # that number (excluding $,()% characters) and write
+            # it to our list for further procecssing.
+            for word in tag.split():
+                # We want to store numbers that we find within the
+                # cells of the tables with their negative sign,
+                # and their % sign. We're going to output unsigned
+                # integers, so we create known numbers to denote
+                # - and % and start/end sequence numbers for our
+                # number sequence.
+                is_negative, num_str, is_percent = get_number(word)
+                if num_str is not False:
+                    # Many documents contain the % sign in a separate
+                    # cell from the actual value. We consider the presence
+                    # of the '.' in the text to denote percentage.
+                    if '.' in num_str:
+                        num_str = convert_fraction_to_whole(num_str)
+
+                    # We must append the tuple here.
+                    # If we extend, each value in the tuple will be
+                    # separately appended and we will lose the
+                    # tuple.
+                    words.append(number_to_sequence(is_negative,
+                                                    num_str,
+                                                    is_percent))
                 else:
-                    token_seq.append(word.strip().lower())
+                    for x in split_using_punctuation(word):
+                        words.append(x)
+            update_seq_and_number_dict(words)
         else:
             token_seq.append(tag.name.strip().lower())
+
+            attr_names_values = []
             for name_or_value in get_attr_names_values(tag):
-                token_seq.append(name_or_value.strip().lower())
+                for x in name_or_value.split():
+                    attr_names_values.extend(split_using_punctuation(x))
+
+            update_seq_and_number_dict(attr_names_values)
             for child in tag.children:
                 recurse(child)
             token_seq.append('end_' + tag.name.strip().lower())
 
+    def convert_dict_values(number_dict):
+        result = {}
+        for k, v in number_dict.items():
+            result[k] = str(v)
+        return result
+
     recurse(top_tag)
-    write_json_to_file(filename + '.nums', number_dict)
+
+    write_json_to_file(filename + '.nums',
+                       convert_dict_values(number_dict))
     return token_seq, number_dict
 
 
@@ -47,52 +109,8 @@ def find_html_table_encodings(filename, table_text, tokens):
     tokens.update(file_token_seq)
 
 
-def write_tokens_file(tokens, tokens_filename, start_token_num):
-    tokens = map(remove_bad_endings, tokens)
-    tokens = filter(filter_bad_tokens, tokens)
-    with open(tokens_filename, 'w') as f:
-        for idx, token in enumerate(tokens):
-            f.write(f'{idx+start_token_num}: {token}\n')
-
-
-def read_tokens_file(filename):
-    tokens = {}
-    with open(filename, 'r') as f:
-        for line in f:
-            try:
-                # Don't know why this is happening, but we should
-                # protect our code against it.
-                if ':' not in line:
-                    continue
-
-                idx = line.index(':')
-                token, value = line[:idx], line[idx+1:]
-            except ValueError as e:
-                print(f'line: {line}\nerror: {e}')
-                raise e
-            value = value.strip()
-            tokens[value] = token
-    return tokens
-
-
-def remove_all_tokens_files():
-    # You want to process all of these files at once
-    # to ensure that the set of tokens takes all
-    # files into consideration. This is why we
-    # make sure that all token files are removed
-    # before starting the process.
-    print('Removing all token files ...', end=' ')
-    remove_files(cleaned_tags_dir(), '**', 'tokens')
-
-
 def remove_all_number_files():
     remove_files(cleaned_tags_dir(), '**', '*.nums')
-
-
-def get_tokens_filename(filing_filename, company_dir_idx,
-                        company_dir, tokens_filename):
-    return os.path.join(filing_filename[:company_dir_idx],
-                        company_dir, tokens_filename)
 
 
 def find_all_html_table_encodings():
@@ -105,10 +123,10 @@ def find_all_html_table_encodings():
     # must always keep incrementing. This way, our dictionary with
     # (token_num: token_value) will not miss any tokens.
     current_company_dir = ''
-    # num_dirs_to_process = 3
-    token_num = 0
+    token_num = Number.START_WORD_NUM.value
     tokens = set()
     tokens_filename = ''
+    num_dirs_to_process = 3
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
         print(f'filename: {filename}')
@@ -130,6 +148,9 @@ def find_all_html_table_encodings():
 
             tokens = set()
             current_company_dir = company_dir
+            num_dirs_to_process -= 1
+            if num_dirs_to_process <= 0:
+                break
         else:
             # We have to create this variable, and assign to it.
             # This way, we have access to the last filename
@@ -149,16 +170,18 @@ def find_all_html_table_encodings():
     for filename in get_filenames(cleaned_tags_dir(), '*', 'tokens'):
 
         tokens = read_tokens_file(filename)
-        all_tokens.update(tokens)
+        all_tokens.update(get_token_values(tokens))
 
-    print(f'len(tokens): {len(tokens)}')
-    write_tokens_file(tokens, all_tokens_filename, 0)
+    print(f'len(all_tokens): {len(all_tokens)}')
+    write_tokens_file(all_tokens, all_tokens_filename, 0)
 
 
 def encode_html_table(filename, table_text, tokens):
 
     soup = BeautifulSoup(table_text, 'html.parser')
     token_seq, number_dict = get_sequences(filename, soup)
+
+    # token_seq = clean_tokens(token_seq)
 
     # The encoded values are going to be all numbers.
     # To distinguish between tokens and numbers encoded using number_dict,
@@ -167,9 +190,9 @@ def encode_html_table(filename, table_text, tokens):
     num_seq_offset = len(tokens)
 
     def encode(token):
-        try:
-            return number_dict[token] + num_seq_offset
-        except KeyError:
+        if is_number_token(token) and token in number_dict:
+            return number_dict[token]
+        else:
             return tokens[token]
 
     encoded = ' '.join(map(encode, token_seq))
@@ -183,21 +206,24 @@ def encode_all_html_tables():
     # This allows us to write the token given each
     # value as we encode each file.
     tokens = read_tokens_file(tokens_file())
+    tokens = flip_tokens_keys_values(tokens)
 
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
         # Ignore output files
-        if '.encoded' in filename:
+        if filename.endswith('.encoded'):
             continue
 
         # Ignore files that are already processed
         if file_exists(filename + '.encoded'):
             continue
 
+        filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
         print(f'filename: {filename}')
         table = read_file(filename)
 
         encode_html_table(filename, table, tokens)
+        break
 
 
 if __name__ == '__main__':

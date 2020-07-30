@@ -5,7 +5,6 @@ regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
 regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
 regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
-regex_number = re.compile(r'^\$?(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
 regex_multiple_semicolons = re.compile(r'\;{2,}', re.MULTILINE)
 regex_subattr_no_value = re.compile(r'\;[^\;\:]+\;', re.MULTILINE)
 
@@ -108,10 +107,22 @@ def remove_extra_characters(attr_values):
 
 
 def get_attr_subnames_and_values(attr_name, attr_values):
+
+    def invalid_subname(part):
+        # Not sure if this will grow, as we see more cases. This function
+        # ensures we have the scaffolding to add valid parts
+        valid_subname = ['text-align']
+        for v in valid_subname:
+            if part.strip().startswith(v):
+                return not True  # Function invalid_subname returns false
+        return True  # Function invalid_subname returns true
+
     attr_values = remove_extra_characters(attr_values)
-    attr_subnames_and_values_list = \
-        [tuple(part.split(':'))
-            for part in attr_values.split(';')]
+    attr_subnames_and_values_list = []
+    for part in attr_values.split(';'):
+        if invalid_subname(part):
+            continue
+        attr_subnames_and_values_list.append(tuple(part.split(':')))
     attr_subnames_and_values_list = \
         list(filter(lambda x: True if len(x) == 2 else False,
                     attr_subnames_and_values_list))
@@ -133,6 +144,9 @@ def get_attr_names_values(tag):
     if isinstance(tag, NavigableString):
         return attr_names_values
     for attr_name, attr_values in tag.attrs.items():
+        if attr_name not in ['rowspan', 'colspan', 'style']:
+            continue
+
         try:
             if isinstance(attr_values, list):
                 attr_values = ' '.join(attr_values)
@@ -163,25 +177,3 @@ def get_start_tag_string(tag):
         raise IndexError('Could not find end of tag')
 
     return full_tag_str[:end_tag_idx+1]
-
-
-def get_number(text):
-    match = regex_number.fullmatch(text)
-
-    # If the whole match is not just a period, $, or comma,
-    # then we have a valid number.
-    if match is not None \
-       and match.group(0) not in ['.', '$', ',', '(', ')']:
-
-        result = match.group(1)
-        result = result.replace(',', '') \
-            .replace('$', '') \
-            .replace('%', '')
-        if '(' in result or ')' in result:
-            result = result.replace('(', '-') \
-                .replace(')', '')
-        if len(result) == 0:
-            return False
-        return result
-    else:
-        return False

@@ -14,6 +14,7 @@ from ml.edit_tables import edit_all_tables
 from ml.find_all_tag_names import find_unprocessed_tag_names
 from ml.encode_html import find_all_html_table_encodings, \
     encode_all_html_tables
+from ml.decode import decode_one_file
 
 
 if __name__ == '__main__':
@@ -39,6 +40,7 @@ if __name__ == '__main__':
         'find_unprocessed_tag_names': find_unprocessed_tag_names,
         'find_all_html_table_encodings': find_all_html_table_encodings,
         'encode_all_html_tables': encode_all_html_tables,
+        'decode_one_file': decode_one_file,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
