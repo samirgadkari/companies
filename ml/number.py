@@ -81,7 +81,7 @@ def number_to_sequence(is_negative, num_str, is_percent):
     return NumberSequence(
         Number.START_SEQUENCE.value,
         1 if is_negative else 0,
-        num_str,
+        int(num_str),
         1 if is_percent else 0,
         Number.END_SEQUENCE.value)
 
