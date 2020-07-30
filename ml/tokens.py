@@ -14,7 +14,12 @@ def clean_tokens(tokens):
 
 
 def write_tokens_file(tokens, tokens_filename, start_token_num):
+    # This function is called when we're finding all tokens.
+    # At this time, all 'nums_*' tokens are saved to the
+    # table's individual file. We should not use 'nums_*' from
+    # the global tokens file, so we remove them.
     tokens = clean_tokens(tokens)
+
     with open(tokens_filename, 'w') as f:
         for idx, token in enumerate(tokens):
             f.write(f'{idx+start_token_num}: {token}\n')
