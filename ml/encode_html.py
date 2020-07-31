@@ -178,10 +178,6 @@ def find_all_html_table_encodings():
     write_tokens_file(all_tokens, all_tokens_filename, 0)
 
 
-def remove_all_encoded_files():
-    remove_files(cleaned_tags_dir(), '**', '*.encoded')
-
-
 def encode_html_table(filename, table_text, tokens):
 
     soup = BeautifulSoup(table_text, 'html.parser')
@@ -197,18 +193,40 @@ def encode_html_table(filename, table_text, tokens):
 
     def encode(token):
         if is_number_token(token) and token in number_dict:
-            return number_dict[token] + num_seq_offset
+            num = number_dict[token]
+
+            result = list(NumberSequence(num.start, num.negative,
+                                         num.number + num_seq_offset,
+                                         num.percent, num.end))
+            if result is None:
+                raise ValueError('Result is None')
+            return result
         else:
-            return tokens[token]
+            result = tokens[token]
+            if result is None:
+                raise ValueError('Result is None')
+            return result
 
     encoded = []
-    encoded = ' '.join([encoded.extend(v) for v in
-                        map(encode, token_seq)])
+    for values in map(encode, token_seq):
+        if isinstance(values, list):
+            for value in values:
+                encoded.append(str(value))
+        else:
+            encoded.append(values)
+    encoded = ' '.join(encoded)
+
     with open(filename + '.encoded', 'w') as f:
         f.write(encoded)
 
 
+def remove_all_encoded_files():
+    remove_files(cleaned_tags_dir(), '**', '*.encoded')
+
+
 def encode_all_html_tables():
+
+    remove_all_encoded_files()
 
     # Read tokens into a dictionary using value:token.
     # This allows us to write the token given each
@@ -216,8 +234,15 @@ def encode_all_html_tables():
     tokens = read_tokens_file(tokens_file())
     tokens = flip_tokens_keys_values(tokens)
 
+    num_dirs_to_process = 3
+    current_company_dir = ''
+
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
+        # Ignore number files
+        if filename.endswith('.nums'):
+            continue
+
         # Ignore output files
         if filename.endswith('.encoded'):
             continue
@@ -226,12 +251,20 @@ def encode_all_html_tables():
         if file_exists(filename + '.encoded'):
             continue
 
-        filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
+        company_dir_idx = len(cleaned_tags_dir())
+        company_dir = filename[company_dir_idx+1:].split(os.sep)[0]
+
+        if current_company_dir != company_dir:
+            current_company_dir = company_dir
+            num_dirs_to_process -= 1
+            if num_dirs_to_process <= 0:
+                break
+
+        # filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
         print(f'filename: {filename}')
         table = read_file(filename)
 
         encode_html_table(filename, table, tokens)
-        break
 
 
 if __name__ == '__main__':
