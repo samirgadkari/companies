@@ -3,17 +3,21 @@ from enum import Enum
 from math import modf
 from dataclasses import dataclass
 
+FRACTION_MULT_DIV = 100.0
+regex_any_digits = re.compile(r'\d', re.MULTILINE)
 regex_number = re.compile(r'^\$?(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
 
 
 # These are the hard-coded numbers that are output for particular conditions.
 class Number(Enum):
     PADDING = 0
-    START_SEQUENCE = 1
-    END_SEQUENCE = 2
+    START_SEQUENCE = 10
+    END_SEQUENCE = 11
 
-    # Words will start from this number.
-    START_WORD_NUM = 10
+    # This will be the starting key ('num_' + this value as a string)
+    # for the number file. It will also be the starting key
+    # (this value as a string) for the tokens file.
+    START_WORD_NUM = 100
 
 
 @dataclass(init=True, repr=False, eq=False, order=False,
@@ -22,6 +26,7 @@ class NumberSequence:
     start: int
     negative: int
     number: int
+    fraction: int
     percent: int
     end: int
 
@@ -29,12 +34,13 @@ class NumberSequence:
         return '(' + str(self.start) + ',' \
             + str(self.negative) + ',' \
             + str(self.number) + ',' \
+            + str(self.fraction) + ',' \
             + str(self.percent) + ',' \
             + str(self.end) + ')'
 
     def __iter__(self):
         self.iter_values = [self.start, self.negative, self.number,
-                            self.percent, self.end]
+                            self.fraction, self.percent, self.end]
         self.iter_cur = 0
         return self
 
@@ -54,10 +60,10 @@ class NumberSequence:
         # We know that tuples are hashable, so we store
         # our data in a tuple and hash it.
         return hash((self.start, self.negative, self.number,
-                     self.percent, self.end))
+                     self.fraction, self.percent, self.end))
 
 
-def convert_fraction_to_whole(num):
+def convert_fraction_to_whole(num: str) -> str:
     # Check that if the number is a fraction,
     # we can multiply it by 100 and save just
     # the integer part without losing any data.
@@ -67,7 +73,7 @@ def convert_fraction_to_whole(num):
     num = float(num)
     if num < 0.0:
         num = -num
-    frac, whole = modf(float(num) * 100.0)
+    frac, whole = modf(float(num) * FRACTION_MULT_DIV)
 
     # Since we're dealing with fractions, the math will not be perfect.
     #    ex: number = 2.55, frac = 0.9999999 whole = 254.0
@@ -77,20 +83,46 @@ def convert_fraction_to_whole(num):
     return str(int(whole))
 
 
+def convert_whole_to_fraction(num: int) -> float:
+    return float(num / FRACTION_MULT_DIV)
+
+
 def number_to_sequence(is_negative, num_str, is_percent):
-    return NumberSequence(
-        Number.START_SEQUENCE.value,
-        1 if is_negative else 0,
-        int(num_str),
-        1 if is_percent else 0,
-        Number.END_SEQUENCE.value)
+    # Many documents contain the % sign in a separate
+    # cell from the actual value. We consider the presence
+    # of the '.' in the text to denote percentage.
+    if '.' in num_str:
+        num_str = convert_fraction_to_whole(num_str)
+
+        return NumberSequence(
+            Number.START_SEQUENCE.value,
+            1 if is_negative else 0,
+            int(num_str),
+            1,  # this is a fractional number
+            1 if is_percent else 0,
+            Number.END_SEQUENCE.value)
+    else:
+        return NumberSequence(
+            Number.START_SEQUENCE.value,
+            1 if is_negative else 0,
+            int(num_str),
+            0,  # this is not a fractional number
+            1 if is_percent else 0,
+            Number.END_SEQUENCE.value)
 
 
 def is_number(text):
-    return False if regex_number.fullmatch(text) is None else True
+    return bool(regex_number.fullmatch(text))
+
+
+def digits_in_string(text):
+    return bool(regex_any_digits.search(text))
 
 
 def get_number(text):
+    if not digits_in_string(text):
+        return (False, False, False)
+
     match = regex_number.fullmatch(text)
 
     # If the whole match is not just a period, $, or comma,

@@ -4,13 +4,13 @@ from bs4 import BeautifulSoup, NavigableString
 from utils.file import get_filenames, read_file
 from utils.environ import cleaned_tags_dir, tokens_file
 from utils.html import get_attr_names_values
-from utils.file import file_exists, remove_files, write_json_to_file
+from utils.file import remove_files, write_json_to_file
 from utils.text import split_using_punctuation
 from ml.tokens import remove_all_tokens_files, write_tokens_file, \
     read_tokens_file, get_tokens_filename, \
     get_token_values, flip_tokens_keys_values, is_number_token
-from ml.number import Number, convert_fraction_to_whole, \
-    number_to_sequence, get_number, NumberSequence
+from ml.number import Number, number_to_sequence, get_number, NumberSequence
+from functools import reduce
 
 
 def get_sequences(filename, top_tag):
@@ -58,20 +58,14 @@ def get_sequences(filename, top_tag):
                 # integers, so we create known numbers to denote
                 # - and % and start/end sequence numbers for our
                 # number sequence.
-                is_negative, num_str, is_percent = get_number(word)
-                if num_str is not False:
-                    # Many documents contain the % sign in a separate
-                    # cell from the actual value. We consider the presence
-                    # of the '.' in the text to denote percentage.
-                    if '.' in num_str:
-                        num_str = convert_fraction_to_whole(num_str)
-
+                is_negative, num_seq, is_percent = get_number(word)
+                if num_seq is not False:
                     # We must append the tuple here.
                     # If we extend, each value in the tuple will be
                     # separately appended and we will lose the
                     # tuple.
                     words.append(number_to_sequence(is_negative,
-                                                    num_str,
+                                                    num_seq,
                                                     is_percent))
                 else:
                     for x in split_using_punctuation(word):
@@ -126,7 +120,7 @@ def find_all_html_table_encodings():
     token_num = Number.START_WORD_NUM.value
     tokens = set()
     tokens_filename = ''
-    num_dirs_to_process = 3
+    # num_dirs_to_process = 3
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
         # filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
@@ -142,16 +136,11 @@ def find_all_html_table_encodings():
                 token_num += len(tokens)
                 del tokens
 
-                # print(f'num_dirs_to_process: {num_dirs_to_process}')
-                # num_dirs_to_process -= 1
-                # if num_dirs_to_process == 0:
-                #     break
-
             tokens = set()
             current_company_dir = company_dir
-            num_dirs_to_process -= 1
-            if num_dirs_to_process <= 0:
-                break
+            # num_dirs_to_process -= 1
+            # if num_dirs_to_process <= 0:
+            #     break
         else:
             # We have to create this variable, and assign to it.
             # This way, we have access to the last filename
@@ -162,7 +151,6 @@ def find_all_html_table_encodings():
                                                   "tokens")
 
         find_html_table_encodings(filename, table, tokens)
-        # break
     else:
         write_tokens_file(tokens, tokens_filename, token_num)
 
@@ -171,33 +159,37 @@ def find_all_html_table_encodings():
     all_tokens = set()
     for filename in get_filenames(cleaned_tags_dir(), '*', 'tokens'):
 
-        tokens = read_tokens_file(filename)
+        tokens, _ = read_tokens_file(filename)
         all_tokens.update(get_token_values(tokens))
 
     print(f'len(all_tokens): {len(all_tokens)}')
-    write_tokens_file(all_tokens, all_tokens_filename, 0)
+
+    # We need to give the offset as the last value in this function call.
+    # This allows us to interpret the value of 1 as the start of a
+    # number sequence, and not confuse it with an entry in the tokens
+    # file that has key = 1.
+    write_tokens_file(all_tokens, all_tokens_filename,
+                      Number.START_WORD_NUM.value)
 
 
-def encode_html_table(filename, table_text, tokens):
+def encode_html_table(filename, table_text, tokens,
+                      encoded_num_start_value_shift):
 
     soup = BeautifulSoup(table_text, 'html.parser')
     token_seq, number_dict = get_sequences(filename, soup)
-
-    # token_seq = clean_tokens(token_seq)
-
-    # The encoded values are going to be all numbers.
-    # To distinguish between tokens and numbers encoded using number_dict,
-    # the numbers encoded with number_seq will start from the
-    # maximum value of tokens + 1
-    num_seq_offset = len(tokens)
 
     def encode(token):
         if is_number_token(token) and token in number_dict:
             num = number_dict[token]
 
-            result = list(NumberSequence(num.start, num.negative,
-                                         num.number + num_seq_offset,
-                                         num.percent, num.end))
+            # shift the number sequence start value to
+            # maximum value of the tokens + 1
+            result = list(NumberSequence(num.start +
+                                         encoded_num_start_value_shift,
+                                         num.negative,
+                                         num.number,
+                                         num.fraction, num.percent,
+                                         num.end))
             if result is None:
                 raise ValueError('Result is None')
             return result
@@ -231,40 +223,36 @@ def encode_all_html_tables():
     # Read tokens into a dictionary using value:token.
     # This allows us to write the token given each
     # value as we encode each file.
-    tokens = read_tokens_file(tokens_file())
+    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_file())
     tokens = flip_tokens_keys_values(tokens)
 
-    num_dirs_to_process = 3
-    current_company_dir = ''
+    # num_dirs_to_process = 3
+    # current_company_dir = ''
 
     for filename in get_filenames(cleaned_tags_dir(),
                                   '*', '10-k', '*', '*', '*'):
-        # Ignore number files
-        if filename.endswith('.nums'):
+        # Ignore processed files
+        if filename.endswith('.nums') or \
+           filename.endswith('.encoded') or \
+           filename.endswith('.decoded') or \
+           filename.endswith('tokens'):
             continue
 
-        # Ignore output files
-        if filename.endswith('.encoded'):
-            continue
+        # company_dir_idx = len(cleaned_tags_dir())
+        # company_dir = filename[company_dir_idx+1:].split(os.sep)[0]
 
-        # Ignore files that are already processed
-        if file_exists(filename + '.encoded'):
-            continue
-
-        company_dir_idx = len(cleaned_tags_dir())
-        company_dir = filename[company_dir_idx+1:].split(os.sep)[0]
-
-        if current_company_dir != company_dir:
-            current_company_dir = company_dir
-            num_dirs_to_process -= 1
-            if num_dirs_to_process <= 0:
-                break
+        # if current_company_dir != company_dir:
+        #     current_company_dir = company_dir
+        #     num_dirs_to_process -= 1
+        #     if num_dirs_to_process <= 0:
+        #         break
 
         # filename = '/Volumes/datadrive/tags-cleaned/0000707605_AMERISERV_FINANCIAL_INC__PA_/10-k/2018-01-01_2018-12-31_10-K/tables-extracted/162.table-extracted'
         print(f'filename: {filename}')
         table = read_file(filename)
 
-        encode_html_table(filename, table, tokens)
+        encode_html_table(filename, table, tokens,
+                          encoded_num_start_value_shift)
 
 
 if __name__ == '__main__':
