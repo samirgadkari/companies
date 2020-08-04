@@ -4,8 +4,7 @@ from data.get.get_companies_in_sector import get_companies
 from data.extract.extract_tables import extract_tables
 from extract import extract_single_table, extract_all_tables
 from data.extract.filter import filter_data
-from data.generate.generate import check_hand_created_samples
-from data.generate.generate import generate_samples
+from generate.generate import check_hand_created_samples, generate_samples
 from data.transform.html.table import create_table
 from data.transform.html.to_image import html_to_image
 from data.extract.text_from_image import image_to_data
