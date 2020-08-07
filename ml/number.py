@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 FRACTION_MULT_DIV = 100.0
 regex_any_digits = re.compile(r'\d', re.MULTILINE)
-regex_number = re.compile(r'^\$?(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
+regex_number = re.compile(r'^\$?\s*(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
 
 
 # These are the hard-coded numbers that are output for particular conditions.

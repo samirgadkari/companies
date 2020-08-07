@@ -4,7 +4,6 @@ import glob
 import html
 from bs4 import BeautifulSoup
 from utils.environ import data_dir
-from utils.file import get_filenames
 
 TABLES_EXTRACTED_DIR_SUFFIX = 'tables-extracted'
 TABLES_EXTRACTED_FILE_SUFFIX = 'table-extracted'
@@ -90,7 +89,7 @@ def extract_single_table(filename):
         filedata = html.unescape(f.read())
 
     tags = get_data(filedata, regex_balance_sheet,
-                   table_balance_sheet_name, 'table')
+                    table_balance_sheet_name, 'table')
     if tags is not None:
         tag_num = 0
         for tag in tags:
