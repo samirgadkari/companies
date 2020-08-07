@@ -1,5 +1,6 @@
 import re
-from bs4 import NavigableString
+from bs4 import BeautifulSoup, NavigableString
+from ml.number import is_number
 
 regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
@@ -177,3 +178,42 @@ def get_start_tag_string(tag):
         raise IndexError('Could not find end of tag')
 
     return full_tag_str[:end_tag_idx+1]
+
+
+def navigable_string(tag):
+    if isinstance(tag, NavigableString):
+        yield tag
+    else:
+        for child in tag.children:
+            yield from navigable_string(child)
+
+
+def get_number_text(text):
+
+    text = text.strip()
+    for c in '$,% \t\n':
+        text = text.replace(c, '')
+    return text
+
+
+def replace_values(html_data, ori_str, updated_str):
+    top_tag = BeautifulSoup(html_data, 'html.parser')
+    one_or_more_values_replaced = False
+    strings_found = []
+
+    for tag in navigable_string(top_tag):
+        s = str(tag)
+        if s == '\n':
+            continue
+
+        s_num = get_number_text(s)
+
+        strings_found.append(f'{s_num}')
+        if is_number(s) and s_num == ori_str:
+            tag.string = updated_str
+            one_or_more_values_replaced = True
+
+    if one_or_more_values_replaced is False:
+        print(strings_found)
+        raise ValueError(f'Could not find {ori_str} in file')
+    return str(top_tag)
