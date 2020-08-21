@@ -1,6 +1,7 @@
 import os
 import sys
-from utils.environ import tokens_file, cleaned_tags_dir
+from utils.environ import tokens_file, cleaned_tags_dir, \
+    generated_samples_dir
 from ml.tokens import read_tokens_file
 from ml.number import Number, convert_whole_to_fraction
 from utils.file import write_file, remove_files, \
@@ -53,17 +54,16 @@ def remove_all_decoded_files():
     remove_files(cleaned_tags_dir(), '**', '*.decoded')
 
 
-def decode_all_files():
+def decode_all_files(filenames, tokens_path):
 
     remove_all_decoded_files()
 
     # num_dirs_to_process = 3
     # current_company_dir = ''
 
-    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_file())
+    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_path)
 
-    for filename in get_filenames(cleaned_tags_dir(),
-                                  '*', '10-k', '*', '*', '*'):
+    for filename in filenames:
 
         # Ignore all files that don't have '.encoded' at the end
         if not filename.endswith('.encoded'):
@@ -83,6 +83,19 @@ def decode_all_files():
 
         decode_file(filename, tokens, encoded_num_start_value_shift)
         # break
+
+
+def decode_training_files():
+    paths = os.path.join(generated_samples_dir(), '*.encoded')
+    tokens_path = os.path.join(generated_samples_dir(), 'tokens')
+    decode_all_files(get_filenames(paths), tokens_path)
+
+
+def decode_validation_test_files():
+    paths = os.path.join(cleaned_tags_dir(),
+                         '*', '10-k', '*', '*', '*.encoded')
+    tokens_path = os.path.join(cleaned_tags_dir(), 'tokens')
+    decode_all_files(get_filenames(paths), tokens_path)
 
 
 if __name__ == '__main__':

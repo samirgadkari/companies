@@ -11,11 +11,12 @@ from data.extract.text_from_image import image_to_data
 from tesseract import text_to_json
 from ml.edit_tables import edit_all_tables
 from ml.find_all_tag_names import find_unprocessed_tag_names
-from ml.encode_html import find_all_html_table_encodings, \
-    encode_all_html_tables
-from ml.decode import decode_all_files
+from ml.encode import find_training_encodings, find_validation_encodings
+from ml.encode import encode_training_files, encode_validation_files, \
+    encode_test_files
+from ml.decode import decode_training_files, decode_validation_test_files
 from unescape import unescape_all_tables
-
+from ml.validation_test_split import test_matching_filenames
 
 if __name__ == '__main__':
     try:
@@ -38,10 +39,15 @@ if __name__ == '__main__':
         'extract_all_tables': extract_all_tables,
         'edit_all_tables': edit_all_tables,
         'find_unprocessed_tag_names': find_unprocessed_tag_names,
-        'find_all_html_table_encodings': find_all_html_table_encodings,
-        'encode_all_html_tables': encode_all_html_tables,
-        'decode_all_files': decode_all_files,
+        'find_training_encodings': find_training_encodings,
+        'find_validation_encodings': find_validation_encodings,
+        'encode_training_files': encode_training_files,
+        'encode_validation_files': encode_validation_files,
+        'encode_test_files': encode_test_files,
+        'decode_training_files': decode_training_files,
+        'decode_validation_test_files': decode_validation_test_files,
         'unescape_all_tables': unescape_all_tables,
+        'test_matching_filenames': test_matching_filenames,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:

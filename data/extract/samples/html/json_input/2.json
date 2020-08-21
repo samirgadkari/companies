@@ -1,6 +1,6 @@
 {
     "table_number_interpretation": "PARENT COMPANY FINANCIAL INFORMATION (Details) - USD ($)<br> $ in Thousands",
-    "table_years_months": ["Dec 31 2017", "Dec 31 2016", "Dec 31 2015"],
+    "table_years_months": ["Dec. 31, 2017", "Dec. 31, 2016", "Dec. 31, 2015"],
     "table_data": [
         {
             "name": "ASSETS",
@@ -49,14 +49,14 @@
             ]
         },
         {
-            "name": "STOCKHOLDERS EQUITY",
+            "name": "STOCKHOLDERS’ EQUITY",
             "sections": [
                 {
-                    "name": "Total stockholders equity",
+                    "name": "Total stockholders’ equity",
                     "values": ["95102", "95395", "118973"]
                 },
                 {
-                    "name": "TOTAL LIABILITIES AND STOCKHOLDERS EQUITY",
+                    "name": "TOTAL LIABILITIES AND STOCKHOLDERS’ EQUITY",
                     "values": ["1167655", "1153780"]
                 }
             ]
@@ -111,14 +111,14 @@
                     ]
                 },
                 {
-                    "name": "STOCKHOLDERS EQUITY",
+                    "name": "STOCKHOLDERS’ EQUITY",
                     "sections": [
                         {
-                            "name": "Total stockholders equity",
+                            "name": "Total stockholders’ equity",
                             "values": ["95102", "95395"]
                         },
                         {
-                            "name": "TOTAL LIABILITIES AND STOCKHOLDERS EQUITY",
+                            "name": "TOTAL LIABILITIES AND STOCKHOLDERS’ EQUITY",
                             "values": ["116279", "116529"]
                         }
                     ]

@@ -5,6 +5,10 @@ def html_samples_dir():
     return config('HTML_SAMPLES_DIR')
 
 
+def generated_samples_dir():
+    return config('GENERATED_SAMPLES_DIR')
+
+
 def encoded_tables_dir():
     return config('ENCODED_TABLES_DIR')
 
