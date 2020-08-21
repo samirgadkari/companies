@@ -5,7 +5,7 @@ import string
 from decouple import config
 from utils.file import get_filenames, read_file, write_file, \
     get_json_from_file, write_json_to_file, copy_file
-from utils.html import replace_values
+from utils.html import replace_names, replace_values
 
 text_samples_dir = config('TEXT_SAMPLES_DIR')
 html_samples_dir = config('HTML_SAMPLES_DIR')
@@ -140,13 +140,17 @@ def set_of_all_chars_in_data():
     all_chars = list(string.ascii_lowercase)
     all_chars.extend(string.ascii_uppercase)
     all_chars.extend(string.digits)
+    all_chars.append(' ')
 
     # We convert it to a set first to ensure that there are no
     # duplicate characters
     return list(set(all_chars))
 
 
-def randomize_string(s, all_chars):
+def randomize_string(s, all_chars, mappings):
+    if s in mappings:
+        return mappings[s]
+
     if len(s) > MIN_DATA_SIZE:
         length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
     else:
@@ -154,8 +158,25 @@ def randomize_string(s, all_chars):
     return ''.join(np.random.choice(all_chars, length))
 
 
+def randomize_number(num, all_chars, mappings):
+    s = randomize_string(num, all_chars, mappings)
+    is_negative, is_fraction = np.random.choice([True, False], 2)
+
+    if is_negative & is_fraction:
+        return '(' + s[:2] + '.' + s[2:] + ')'
+    elif is_negative:
+        return '(' + s + ')'
+    elif is_fraction:
+        return s[:2] + '.' + s[2:]
+    else:
+        # This removes any perceding zeros for the number.
+        return str(int(s))
+
+
 def update_expected_strings(json_, mappings):
     map_keys = list(mappings.keys())
+    # if isinstance(json_, list):
+    #     import pdb; pdb.set_trace()
     if isinstance(json_, dict):
         new_dict = {}
         for k, v in json_.items():
@@ -183,27 +204,29 @@ def update_expected_strings(json_, mappings):
 
 def generate_input(input_fn, fn_type, json_input_fn, all_chars):
     input_data = read_file(input_fn)
+    # input_data = replace_named_or_numeric(input_data)
 
     json_input = get_json_from_file(json_input_fn)
     mappings = {}  # original string to new string
-    for name in top_level_names(json_input):
-        updated_str = randomize_string(name, all_chars)
-        mappings[name] = updated_str
-        input_data = input_data.replace(name, updated_str, 1)
-    for name in get_names(json_input):
-        updated_str = randomize_string(name, all_chars)
-        mappings[name] = updated_str
-        input_data = input_data.replace(name, updated_str, 1)
-    for value in get_values(json_input):
-        updated_str = randomize_string(value, all_chars)
-        mappings[value] = updated_str
-        if fn_type == 'html':
+    all_names = top_level_names(json_input)
+    all_names.extend(get_names(json_input))
+    for name in all_names:
+        mappings[name] = randomize_string(name, all_chars, mappings)
 
-            input_data = replace_values(input_data,
-                                        value,
-                                        updated_str)
-        else:
-            input_data = input_data.replace(value, updated_str, 1)
+    input_data = replace_names(input_data, mappings)
+
+    if fn_type == 'html':
+        json_values = list(get_values(json_input))
+        # For values, we only need to replace numbers.
+        all_chars = list(string.digits)
+        updated_strings = [randomize_number(value, all_chars, mappings)
+                           for value in json_values]
+        input_data, json_mappings = \
+            replace_values(input_data, json_values, updated_strings)
+        mappings.update(json_mappings)
+    else:
+        raise ValueError('We are only supporting HTML at this point - '
+                         'not {fn_type}')
 
     json_expected = update_expected_strings(json_input, mappings)
     return input_data, json_expected
@@ -217,6 +240,7 @@ def generate_random_text(input_filenames, num_output_files):
 
     for id in range(num_output_files):
         input_fn = np.random.choice(input_filenames)
+        # input_fn = './data/extract/samples/html/html_input/2.html'
         print(f'input_fn: {input_fn}')
 
         fn_parts = input_fn.split(os.sep)
@@ -233,10 +257,12 @@ def generate_random_text(input_filenames, num_output_files):
 
         input_generated_fn = os.path.join(generated_samples_dir,
                                           str(id) + '.input')
-        generated_input, json_expected = generate_input(input_fn,
-                                                        fn_type,
-                                                        json_input_fn,
-                                                        all_chars)
+        generated_input, json_expected = \
+            generate_input(input_fn,
+                           fn_type,
+                           json_input_fn,
+                           all_chars)
+
         write_file(json_generated_output_fn, generated_input)
         write_json_to_file(json_expected_output_fn, json_expected)
         copy_file(input_fn, input_generated_fn)
@@ -245,8 +271,8 @@ def generate_random_text(input_filenames, num_output_files):
 def generate_samples():
     data_filenames = []
     for samples_dir, input_name in \
-        zip([text_samples_dir, html_samples_dir],
-            ['text_input', 'html_input']):
+        zip([html_samples_dir],
+            ['html_input']):
         sorted_files = sorted(list(get_filenames(samples_dir,
                                                  input_name, '*')))
         data_filenames.extend(sorted_files)

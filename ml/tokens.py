@@ -1,5 +1,6 @@
 import os
 import re
+import numpy as np
 from utils.environ import cleaned_tags_dir
 from utils.file import remove_files
 
@@ -79,3 +80,13 @@ def get_tokens_filename(filing_filename, company_dir_idx,
 
 def is_number_token(token):
     return False if regex_number_token.match(token) is None else True
+
+
+def compare_tokens(t1, t2):
+    if not isinstance(t1, np.ndarray) or \
+       not isinstance(t2, np.ndarray):
+        raise ValueError('Pass in numpy arrays for speedy comparison.')
+    num_diff = np.abs(len(t1) - len(t2))
+    check_len = min(len(t1), len(t2))
+    num_diff += np.sum(t1[:check_len] != t2[:check_len])
+    return num_diff

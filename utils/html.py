@@ -8,6 +8,8 @@ regex_tag_name = re.compile(r'<([^/ >]+?)\s[^>]*>', re.MULTILINE)
 regex_tag_attrs = re.compile(r'(\w+=\"[^\"]+\"\s*)+?', re.MULTILINE)
 regex_multiple_semicolons = re.compile(r'\;{2,}', re.MULTILINE)
 regex_subattr_no_value = re.compile(r'\;[^\;\:]+\;', re.MULTILINE)
+regex_named_or_numeric = re.compile(r'(?:\&.*?\;|\\+x..)',
+                                    re.MULTILINE)
 
 # tag.unwrap(): removes the tag and it's attributes,
 # but keeps the text inside.
@@ -191,29 +193,74 @@ def navigable_string(tag):
 def get_number_text(text):
 
     text = text.strip()
-    for c in '$,% \t\n':
+    for c in '$,% \t\n()':
         text = text.replace(c, '')
     return text
 
 
-def replace_values(html_data, ori_str, updated_str):
+def replace_values(html_data, json_values, updated_str):
     top_tag = BeautifulSoup(html_data, 'html.parser')
-    one_or_more_values_replaced = False
-    strings_found = []
+    mappings = {}
+    count = 0
 
-    for tag in navigable_string(top_tag):
-        s = str(tag)
-        if s == '\n':
-            continue
+    for ori_str in json_values:
+        for tag in navigable_string(top_tag):
+            s = str(tag)
+            if s == '\n':
+                continue
 
-        s_num = get_number_text(s)
+            s_num = get_number_text(s)
 
-        strings_found.append(f'{s_num}')
-        if is_number(s) and s_num == ori_str:
-            tag.string = updated_str
-            one_or_more_values_replaced = True
+            try:
+                # The comparison of the strings after stripping
+                # handles the case of the original string being ' '
+                # and comparing it to the '' string.
+                # The float comparison is to ensure numbers like
+                # '3.30' compare with '3.3'.
+                # The order of comparisons is important. If the
+                # original string is ' ', float(' ') will result
+                # in a ValueError, which means no matching value
+                # will be found. So we do the string comparison
+                # before the float comparison.
+                if is_number(s) and ((ori_str.strip() == s_num) or
+                                     (float(ori_str) == float(s_num))):
+                    # You should modify the parent of the NavigableString,
+                    # not the NavigableString itself.
+                    if s.strip().endswith('%'):
+                        # Only 2-digit percentages are allowed,
+                        # since this is what we usually see.
+                        # If there are more significant digits,
+                        # they will be ignored.
+                        use_str = '0.' + updated_str[count][:2]
+                    else:
+                        use_str = updated_str[count]
+                    mappings[s_num] = use_str
+                    tag.parent.string = use_str
+                    count += 1
+                    break
+            except ValueError:
+                pass
 
-    if one_or_more_values_replaced is False:
-        print(strings_found)
-        raise ValueError(f'Could not find {ori_str} in file')
-    return str(top_tag)
+    if count != len(updated_str):
+        raise \
+            ValueError(f'Error !! We did not process all the strings. '
+                       f'count: {count}, len(updated_str): {len(updated_str)}')
+    return str(top_tag), mappings
+
+
+def replace_names(html_data, mappings):
+    mapping_tuples = [(k, v) for k, v in mappings.items()]
+    sorted_tuples = sorted(mapping_tuples, key=lambda x: len(x[0]),
+                           reverse=True)
+
+    for k, v in sorted_tuples:
+        html_data = html_data.replace(k, v)
+
+    return html_data
+
+
+# def replace_named_or_numeric(html_data):
+#     html_data = html_data.encode('unicode-escape').decode()
+
+#     result = regex_named_or_numeric.sub('', html_data)
+#     return result

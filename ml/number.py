@@ -70,9 +70,7 @@ def convert_fraction_to_whole(num: str) -> str:
     # This is because fractions in accounting
     # data are probably percentages.
     # If not, raise an exception.
-    num = float(num)
-    if num < 0.0:
-        num = -num
+    num = abs(float(num))
     frac, whole = modf(float(num) * FRACTION_MULT_DIV)
 
     # Since we're dealing with fractions, the math will not be perfect.
@@ -105,7 +103,7 @@ def number_to_sequence(is_negative, num_str, is_percent):
         return NumberSequence(
             Number.START_SEQUENCE.value,
             1 if is_negative else 0,
-            int(num_str),
+            int(abs(int(num_str))),
             0,  # this is not a fractional number
             1 if is_percent else 0,
             Number.END_SEQUENCE.value)
