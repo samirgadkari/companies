@@ -24,6 +24,8 @@ def update_seq_and_number_dict(values, token_seq, word_num,
         else:
             token_seq.append(value.strip())
 
+    return word_num
+
 
 def encode_token(token, tokens, number_dict,
                  encoded_num_start_value_shift):

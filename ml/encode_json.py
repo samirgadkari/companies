@@ -37,8 +37,9 @@ def get_json_sequences(filename, json_text, write_number_dict=True):
         else:
             words.append(match)
 
-    update_seq_and_number_dict(words, token_seq, word_num,
-                               number_dict, reverse_number_dict)
+    word_num = update_seq_and_number_dict(words, token_seq,
+                                          word_num, number_dict,
+                                          reverse_number_dict)
 
     if write_number_dict is True:
         write_json_to_file(filename + '.nums',
