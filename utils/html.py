@@ -1,4 +1,5 @@
 import re
+import string
 from bs4 import BeautifulSoup, NavigableString
 from ml.number import is_number
 
@@ -257,6 +258,46 @@ def replace_names(html_data, mappings):
         html_data = html_data.replace(k, v)
 
     return html_data
+
+
+def remove_spaces_from_strings(top_tag):
+
+    for tag in navigable_string(top_tag):
+        tag.string.replace_with(tag.string.strip())
+
+    return top_tag
+
+
+def make_html_strings_unique(html_data, names):
+
+    append_txts = list(string.ascii_lowercase + string.ascii_uppercase)
+    append_txts = list(map(lambda x: f' ({x})', append_txts))
+
+    # Remove leading and trailing whitespaces from each
+    # navigable string. The names that are input to this
+    # function are from the JSON file which is created
+    # by hand, and does not have any such whitespace.
+    top_tag = remove_spaces_from_strings(
+        BeautifulSoup(html_data, 'html.parser'))
+
+    temp_names = names.copy()
+    result = []
+
+    while len(temp_names) > 0:
+        first_name, temp_names = temp_names[0], temp_names[1:]
+        if first_name in temp_names:  # name is repeated
+            new_name = first_name + append_txts[0]
+
+            found_tag = top_tag.find(text=first_name)
+            if found_tag is None:
+                raise ValueError(f'Could not find string: {first_name}')
+            found_tag.string.replace_with(new_name)
+            result.append(new_name)
+            append_txts = append_txts[1:]
+        else:
+            result.append(first_name)
+
+    return str(top_tag), result
 
 
 # def replace_named_or_numeric(html_data):
