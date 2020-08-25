@@ -14,7 +14,7 @@ def get_html_sequences(filename, top_tag, write_number_dict=True):
     reverse_number_dict = {}
 
     def recurse(tag):
-        nonlocal token_seq
+        nonlocal token_seq, word_num
 
         if isinstance(tag, NavigableString):
             words = []
@@ -46,8 +46,9 @@ def get_html_sequences(filename, top_tag, write_number_dict=True):
                 else:
                     for x in split_using_punctuation(word):
                         words.append(x)
-            update_seq_and_number_dict(words, token_seq, word_num,
-                                       number_dict, reverse_number_dict)
+            word_num = update_seq_and_number_dict(words, token_seq,
+                                                  word_num, number_dict,
+                                                  reverse_number_dict)
         else:
             token_seq.append(tag.name.strip().lower())
 
@@ -56,11 +57,14 @@ def get_html_sequences(filename, top_tag, write_number_dict=True):
                 for x in name_or_value.split():
                     attr_names_values.extend(split_using_punctuation(x))
 
-            update_seq_and_number_dict(attr_names_values, token_seq, word_num,
-                                       number_dict, reverse_number_dict)
+            word_num = update_seq_and_number_dict(attr_names_values, token_seq,
+                                                  word_num, number_dict,
+                                                  reverse_number_dict)
             for child in tag.children:
                 recurse(child)
             token_seq.append('end_' + tag.name.strip().lower())
+
+        return word_num
 
     recurse(top_tag)
 
@@ -73,7 +77,7 @@ def get_html_sequences(filename, top_tag, write_number_dict=True):
 def find_html_table_encodings(filename, table_text, tokens):
     soup = BeautifulSoup(table_text, 'html.parser')
     file_token_seq, _ = get_html_sequences(filename, soup,
-                                           write_number_dict=False)
+                                           write_number_dict=True)
     tokens.update(file_token_seq)
 
 
@@ -82,6 +86,6 @@ def encode_html_table(filename, table_text, tokens,
 
     soup = BeautifulSoup(table_text, 'html.parser')
     token_seq, number_dict = get_html_sequences(filename, soup,
-                                                write_number_dict=True)
+                                                write_number_dict=False)
     encode_file(filename, token_seq, tokens, number_dict,
                 encoded_num_start_value_shift)

@@ -5,7 +5,8 @@ import string
 from decouple import config
 from utils.file import get_filenames, read_file, write_file, \
     get_json_from_file, write_json_to_file, copy_file
-from utils.html import replace_names, replace_values
+from utils.html import replace_names, replace_values, \
+    make_html_strings_unique
 
 text_samples_dir = config('TEXT_SAMPLES_DIR')
 html_samples_dir = config('HTML_SAMPLES_DIR')
@@ -148,8 +149,11 @@ def set_of_all_chars_in_data():
 
 
 def randomize_string(s, all_chars, mappings):
-    if s in mappings:
-        return mappings[s]
+    # We want to have separate mappings for even the same value
+    # which was found in multiple places. This makes it a guarantee
+    # that we will map to the correct location in the JSON file.
+    # if s in mappings:
+    #     return mappings[s]
 
     if len(s) > MIN_DATA_SIZE:
         length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
@@ -207,9 +211,23 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
     # input_data = replace_named_or_numeric(input_data)
 
     json_input = get_json_from_file(json_input_fn)
-    mappings = {}  # original string to new string
+
+    # If the names in the JSON document are not unique,
+    # make them unique. This way, the generated output
+    # HTML document has unique names and we can see
+    # that we get the right name at the right location
+    # after we have encoded and decoded it.
+    names = get_names(json_input)
+    len_names = len(names)
+    len_set_names = len(set(names))
+    if len_names != len_set_names:
+        input_data, names = \
+            make_html_strings_unique(input_data, names)
+
     all_names = top_level_names(json_input)
-    all_names.extend(get_names(json_input))
+    all_names.extend(names)
+
+    mappings = {}  # original string to new string
     for name in all_names:
         mappings[name] = randomize_string(name, all_chars, mappings)
 
