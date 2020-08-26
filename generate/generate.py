@@ -217,18 +217,16 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
     # HTML document has unique names and we can see
     # that we get the right name at the right location
     # after we have encoded and decoded it.
-    names = get_names(json_input)
+    names = top_level_names(json_input)
+    names.extend(get_names(json_input))
     len_names = len(names)
     len_set_names = len(set(names))
     if len_names != len_set_names:
         input_data, names = \
             make_html_strings_unique(input_data, names)
 
-    all_names = top_level_names(json_input)
-    all_names.extend(names)
-
     mappings = {}  # original string to new string
-    for name in all_names:
+    for name in names:
         mappings[name] = randomize_string(name, all_chars, mappings)
 
     input_data = replace_names(input_data, mappings)
