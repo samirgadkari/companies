@@ -290,7 +290,10 @@ def make_html_strings_unique(html_data, names):
 
             found_tag = top_tag.find(text=first_name)
             if found_tag is None:
-                raise ValueError(f'Could not find string: {first_name}')
+                regex_text_pattern = r'^' + re.escape(first_name)
+                found_tag = top_tag.find(text=re.compile(regex_text_pattern))
+                if found_tag is None:
+                    raise ValueError(f'Could not find string: "{first_name}"')
             found_tag.string.replace_with(new_name)
             result.append(new_name)
             append_txts = append_txts[1:]
