@@ -10,8 +10,8 @@ regex_words = re.compile(r'"table_number_interpretation"|'
                          r'"name"|'
                          r'"sections"|'
                          r'"values"|'
-                         r'\b[a-zA-Z0-9]*\b|'
                          r'[0-9\(\)\)\,\.\%]*|'
+                         r'\b[a-zA-Z0-9]*\b|'
                          r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
 
