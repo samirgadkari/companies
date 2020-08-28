@@ -9,8 +9,9 @@ from utils.html import replace_html_tags
 TABLES_EXTRACTED_DIR_SUFFIX = os.path.split(extracted_tables_dir())[1]
 TABLES_EXTRACTED_FILE_SUFFIX = 'table-extracted'
 
-TEXT_FILE_TYPE = 0
-HTML_FILE_TYPE = 1
+HTML_FILE_TYPE = 0
+TEXT_FILE_TYPE = 1
+XBRL_FILE_TYPE = 2
 MIN_TABLE_SIZE = 10240  # 10KB
 
 
@@ -107,26 +108,33 @@ def prettify_html(data):
 
 
 def get_tables_from_single_file(top_input_dirname,
-                                filename, top_output_dirname):
+                                filename, top_output_dirname,
+                                num_files_of_type):
     with open(filename, 'r') as f:
         filedata = html.unescape(f.read())
 
     if is_xbrl_file(filedata):
+        # Although it says XBRL, it can be processed as HTML
         print('  xbrl file')
         matches = regex_table_for_html.findall(filedata)
         tables_saved = save_tables(matches, filename, HTML_FILE_TYPE)
+        num_files_of_type[XBRL_FILE_TYPE] += 1
     else:
         if is_html_file(filedata):
             print('  html file')
             matches = regex_table_for_html.findall(filedata)
             tables_saved = save_tables(matches, filename, HTML_FILE_TYPE)
+            num_files_of_type[HTML_FILE_TYPE] += 1
         else:
-            print('  text file')
-            matches = regex_table_for_text.findall(filedata)
-            tables_saved = save_tables(matches, filename, TEXT_FILE_TYPE)
+            num_files_of_type[TEXT_FILE_TYPE] += 1
+            # We don't have the code to deal with text files yet.
+            return
+            # print('  text file')
+            # matches = regex_table_for_text.findall(filedata)
+            # tables_saved = save_tables(matches, filename, TEXT_FILE_TYPE)
 
-        if tables_saved is False:
-            print(f' >>> Error extracting file: {filename}')
+    if tables_saved is False:
+        print(f' >>> Error extracting file: {filename}')
 
 
 def extract_all_tables():
@@ -135,13 +143,15 @@ def extract_all_tables():
     output_dirname = extracted_tables_dir()
 
     i = 0
+    num_files_of_type = [0, 0, 0]
     print(f'search_path: {search_path}')
     for filename in glob.iglob(search_path):
         # if i > 20:
         #     break
         print(f'Extracting[{i}]: {filename}', end='')
         get_tables_from_single_file(top_input_dirname, filename,
-                                    output_dirname)
+                                    output_dirname, num_files_of_type)
+        print(f'num_files_of_type: {num_files_of_type}')
         i += 1
 
 

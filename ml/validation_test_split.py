@@ -14,7 +14,7 @@ Algorithm:
    but with 0/1 values.
    0 => file is selected for validation
    1 => file is selected for testing
-   Weigths will be provided to specify the number of files used
+   Weights will be provided to specify the number of files used
    for validation, and those for testing.
    Training sets will be generated from files in this directory,
    but only a few will be used to generate huge sets.
