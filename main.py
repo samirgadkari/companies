@@ -9,7 +9,7 @@ from data.transform.html.table import create_table
 from data.transform.html.to_image import html_to_image
 from data.extract.text_from_image import image_to_data
 from tesseract import text_to_json
-from ml.edit_tables import edit_all_tables
+from ml.clean_tables import clean_all_tables
 from ml.find_all_tag_names import find_unprocessed_tag_names
 from ml.encode import find_training_encodings, find_validation_encodings
 from ml.encode import encode_training_files, encode_validation_files, \
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         'text_to_json':   text_to_json,
         'extract_single_table': extract_single_table,
         'extract_all_tables': extract_all_tables,
-        'edit_all_tables': edit_all_tables,
+        'clean_all_tables': clean_all_tables,
         'find_unprocessed_tag_names': find_unprocessed_tag_names,
         'find_training_encodings': find_training_encodings,
         'find_validation_encodings': find_validation_encodings,
