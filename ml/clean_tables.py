@@ -61,7 +61,7 @@ def remove_tags(table_tag):
     table_tag.smooth()
 
 
-def edit_all_tables():
+def clean_all_tables():
     for filename in get_filenames(extracted_tables_dir(),
                                   '*', '10-k', '*', '*', '*'):
         filename_suffix = filename[len(extracted_tables_dir()):]
@@ -81,4 +81,4 @@ def edit_all_tables():
 
 
 if __name__ == '__main__':
-    edit_all_tables()
+    clean_all_tables()
