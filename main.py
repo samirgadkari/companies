@@ -1,8 +1,7 @@
 import sys
 from get_10Ks import get_10Ks
 from data.get.get_companies_in_sector import get_companies
-from data.extract.extract_tables import extract_tables
-from extract import extract_single_table, extract_all_tables
+from extract import extract_all_tables
 from data.extract.filter import filter_data
 from generate.generate import check_hand_created_samples, generate_samples
 from data.transform.html.table import create_table
@@ -25,7 +24,6 @@ if __name__ == '__main__':
         raise SystemExit(f'Usage: {sys.argv[0]} '
                          '<"extract_tables|get_10Ks|get_companies>"')
     switcher = {
-        'extract_tables': extract_tables,
         'check_hand_created_samples': check_hand_created_samples,
         'generate_samples': generate_samples,
         'get_10Ks':       get_10Ks,
@@ -35,7 +33,6 @@ if __name__ == '__main__':
         'html_to_image':  html_to_image,
         'image_to_data':  image_to_data,
         'text_to_json':   text_to_json,
-        'extract_single_table': extract_single_table,
         'extract_all_tables': extract_all_tables,
         'clean_all_tables': clean_all_tables,
         'find_unprocessed_tag_names': find_unprocessed_tag_names,

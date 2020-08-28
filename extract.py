@@ -3,9 +3,10 @@ import re
 import glob
 import html
 from bs4 import BeautifulSoup
-from utils.environ import data_dir
+from utils.environ import data_dir, extracted_tables_dir
+from utils.html import replace_html_tags
 
-TABLES_EXTRACTED_DIR_SUFFIX = 'tables-extracted'
+TABLES_EXTRACTED_DIR_SUFFIX = os.path.split(extracted_tables_dir())[1]
 TABLES_EXTRACTED_FILE_SUFFIX = 'table-extracted'
 
 TEXT_FILE_TYPE = 0
@@ -25,92 +26,122 @@ regex_table_for_html = re.compile(r'(<TABLE.*?>.*?<\/TABLE>)',
 regex_xbrl_file = re.compile(r'<XBRL>',
                              flags=re.DOTALL | re.IGNORECASE)
 
-regex_balance_sheet = \
-    re.compile(r'Consolidated Balance Sheets?',
-               re.MULTILINE)
-table_balance_sheet_name = 'Consolidated Balance Sheet'
+
+def tables_extracted_dirname(f_name):
+
+    prefix, date_range = os.path.split(f_name)
+    prefix, filing_type = os.path.split(prefix)
+    _, company_name = os.path.split(prefix)
+
+    dir_name = os.path.join(os.path.split(data_dir())[0],
+                            TABLES_EXTRACTED_DIR_SUFFIX,
+                            company_name,
+                            filing_type,
+                            date_range)
+    return dir_name
 
 
-def get_data(filedata, search_regex, table_name, search_tag):
-    def num_contained_tags(tag, contained_tag_name):
-        return len(tag.find_all(contained_tag_name))
+def extracted_tables_filename(dir_name, id):
+    return os.path.join(dir_name,
+                        TABLES_EXTRACTED_DIR_SUFFIX,
+                        f'{id}.{TABLES_EXTRACTED_FILE_SUFFIX}')
 
-    def contains_single_tag(containing_tag, contained_tag_name):
-        while containing_tag is not None:
 
-            # If the tag name we're looking for is inside
-            # the tag we're looking for,
-            # return the tag.
-            print(f'containing_tag.name: {containing_tag.name}, '
-                  f'search_tag: {search_tag}')
-            if containing_tag.name == search_tag:
-                return containing_tag
+def write_extracted_table_file(filename, filedata):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'w') as f:
+        f.write(filedata)
 
-            num_tags = num_contained_tags(
-                containing_tag, contained_tag_name)
 
-            print(f'tag.name: {contained_tag_name}, num_tags: {num_tags}')
-            if num_tags > 1:
-                break
-            elif num_tags == 1:
-                return containing_tag
+def save_files(dir_name, file_type, matches):
+    id = 0
+    # Ignore the first match, since it is the full match
+    for match in matches[1:]:
 
-            containing_tag = containing_tag.parent
-
-        return None
-
-    soup = BeautifulSoup(filedata, 'html.parser')
-
-    text_tags = soup.find_all(string=search_regex)
-    print(f'len(text_tags): {len(text_tags)}')
-
-    good_tags = []
-    i = 0
-    for text_tag in text_tags:
-        python_string_text_tag = text_tag.encode('utf-8').decode('utf-8')
-        # print(f'{python_string_text_tag}')
-        if (python_string_text_tag != table_name) and \
-           (python_string_text_tag != table_name + 's'):
-            # print(f'{python_string_text_tag} !='
-            #       f'table_name (including plural name)')
+        # Ignore small tables - many times they're just formatting.
+        if len(match) < MIN_TABLE_SIZE:
             continue
 
-        print(f'i: {i}')
-        i += 1
-        good_tag = contains_single_tag(text_tag.parent, search_tag)
-        if good_tag is not None:
-            good_tags.append(good_tag)
+        if file_type == TEXT_FILE_TYPE:
+            match = replace_html_tags(match)
+        if file_type == HTML_FILE_TYPE:
+            match = prettify_html(match)
 
-    return good_tags
+        filename = extracted_tables_filename(dir_name, id)
+        write_extracted_table_file(filename, match)
+        id += 1
 
 
-def extract_single_table(filename):
+def save_tables(matches, filename, file_type):
+    if len(matches) == 0:
+        return False
+    else:
+        save_files(tables_extracted_dirname(filename), file_type, matches)
+        return True
+
+
+def is_xbrl_file(filedata):
+    upper_case_xbrl_tags = \
+        all([s in filedata for s in ['<XBRL', '</XBRL']])
+    lower_case_xbrl_tags = \
+        all([s in filedata for s in ['<xbrl', '</xbrl']])
+    return upper_case_xbrl_tags or lower_case_xbrl_tags
+
+
+def is_html_file(filedata):
+    upper_case_body_tags = \
+        all([s in filedata for s in ['<BODY', '/BODY']])
+    lower_case_body_tags = \
+        all([s in filedata for s in ['<body', '/body']])
+    return upper_case_body_tags or lower_case_body_tags
+
+
+def prettify_html(data):
+    result = data
+    try:
+        soup = BeautifulSoup(data, 'html.parser')
+        result = soup.prettify()
+    except RecursionError as e:
+        print('Recursion Error occurred - dont prettify HTML')
+    return result
+
+
+def get_tables_from_single_file(top_input_dirname,
+                                filename, top_output_dirname):
     with open(filename, 'r') as f:
         filedata = html.unescape(f.read())
 
-    tags = get_data(filedata, regex_balance_sheet,
-                    table_balance_sheet_name, 'table')
-    if tags is not None:
-        tag_num = 0
-        for tag in tags:
-            # print(tag.prettify())
-            print(f'Extracted table for filename: {filename}')
-            with open(filename + '_' + str(tag_num) + '.html', 'w') as f:
-                f.write(tag.prettify())
-                tag_num += 1
+    if is_xbrl_file(filedata):
+        print('  xbrl file')
+        matches = regex_table_for_html.findall(filedata)
+        tables_saved = save_tables(matches, filename, HTML_FILE_TYPE)
     else:
-        print(f'Could not extract single table for filename: {filename}')
+        if is_html_file(filedata):
+            print('  html file')
+            matches = regex_table_for_html.findall(filedata)
+            tables_saved = save_tables(matches, filename, HTML_FILE_TYPE)
+        else:
+            print('  text file')
+            matches = regex_table_for_text.findall(filedata)
+            tables_saved = save_tables(matches, filename, TEXT_FILE_TYPE)
+
+        if tables_saved is False:
+            print(f' >>> Error extracting file: {filename}')
 
 
 def extract_all_tables():
-    i = 0
+    top_input_dirname = data_dir()
     search_path = os.path.join(data_dir(), '00*', '10-k', '*')
+    output_dirname = extracted_tables_dir()
+
+    i = 0
     print(f'search_path: {search_path}')
     for filename in glob.iglob(search_path):
-        if i > 20:
-            break
-        print(f'Extracting[{i}]: {filename}')
-        extract_single_table(filename)
+        # if i > 20:
+        #     break
+        print(f'Extracting[{i}]: {filename}', end='')
+        get_tables_from_single_file(top_input_dirname, filename,
+                                    output_dirname)
         i += 1
 
 

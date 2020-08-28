@@ -19,7 +19,7 @@ regex_named_or_numeric = re.compile(r'(?:\&.*?\;|\\+x..)',
 # not the tag itself.
 # This table shows the tag name and action to take on the tag.
 tag_actions = {
-    'a':              'decompose',
+    'a':              'unwrap',
     'b':              'untouched',
     'big':            'unwrap',
     'br':             'decompose',
