@@ -9,6 +9,10 @@ def generated_samples_dir():
     return config('GENERATED_SAMPLES_DIR')
 
 
+def generated_html_json_dir():
+    return config('GENERATED_HTML_JSON_DIR')
+
+
 def encoded_tables_dir():
     return config('ENCODED_TABLES_DIR')
 

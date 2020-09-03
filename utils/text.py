@@ -4,6 +4,7 @@ import string
 
 years = [str(x) for x in range(1990, 2200)]
 number_re = re.compile(r'^\-?[0-9]*\.?[0-9]*$')
+regex_trailing_As = re.compile(r'(?:\s*A\s*)*$')
 
 regex_punctuation = ''
 for c in string.punctuation:
@@ -99,3 +100,20 @@ def year(text):
         return int(text)
     else:
         return None
+
+
+def remove_all_trailing_As(row_headings):
+    return row_headings.transform(lambda x: regex_trailing_As.sub('', x))
+
+
+def remove_nonascii_chars(str):
+    MAX_ASCII_VALUE = 127
+
+    def replace_nonascii(c):
+        if ord(c) > MAX_ASCII_VALUE:
+            return ' '
+        else:
+            return c
+
+    result = ''.join(map(replace_nonascii, list(str)))
+    return result
