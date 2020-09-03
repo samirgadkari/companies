@@ -1,3 +1,8 @@
+'''
+Takes HTML files from an input directory and replaces all text
+and numbers with randomly-generated text and numbers
+to create a new HTML file in the output directory.
+'''
 import os
 import sys
 import numpy as np

@@ -1,13 +1,11 @@
 import sys
 from get_10Ks import get_10Ks
 from data.get.get_companies_in_sector import get_companies
-from extract import extract_all_tables
-from data.extract.filter import filter_data
+from extract.extract import extract_all_tables
+from extract.filter import filter_data
 from generate.generate import check_hand_created_samples, generate_samples
 from data.transform.html.table import create_table
-from data.transform.html.to_image import html_to_image
-from data.extract.text_from_image import image_to_data
-from tesseract import text_to_json
+from transform.html_to_json import all_html_to_json
 from ml.clean_tables import clean_all_tables
 from ml.find_all_tag_names import find_unprocessed_tag_names
 from ml.encode import find_training_encodings, find_validation_encodings
@@ -30,9 +28,7 @@ if __name__ == '__main__':
         'get_companies':  get_companies,
         'filter':         filter_data,
         'create_table':   create_table,
-        'html_to_image':  html_to_image,
-        'image_to_data':  image_to_data,
-        'text_to_json':   text_to_json,
+        'all_html_to_json':   all_html_to_json,
         'extract_all_tables': extract_all_tables,
         'clean_all_tables': clean_all_tables,
         'find_unprocessed_tag_names': find_unprocessed_tag_names,

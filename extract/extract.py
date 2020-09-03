@@ -1,3 +1,8 @@
+'''
+Extract tables from HTML/XBRL files in an input directory,
+and put the resulting files in an output directory -
+one table per file.
+'''
 import os
 import re
 import glob
