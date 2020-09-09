@@ -13,7 +13,7 @@ def html_to_json():
     os.makedirs(output_dirname, exist_ok=True)
 
     for full_filepath in get_filenames(html_samples_dir(), 'html_input', '*'):
-        full_filepath = './data/extract/samples/html/html_input/1.html'
+        # full_filepath = './data/extract/samples/html/html_input/1.html'
         filename = full_filepath.split(os.sep)[-1].lower()
 
         if not filename.endswith('html'):
