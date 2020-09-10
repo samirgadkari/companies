@@ -1,4 +1,5 @@
 import re
+import traceback
 from utils.file import read_file
 from bs4 import BeautifulSoup
 import numpy as np
@@ -384,6 +385,19 @@ class Table():
 
 def create_table(filename):
     return Table(filename)
+
+
+def tabularize3(filename):
+    try:
+        table = create_table(filename)
+        full_table = {'table_number_interpretation': '',
+                      'table_years_months': [],
+                      'table_data': table}
+        return json.dumps(full_table, indent=4)
+    except (ValueError, IndexError, AssertionError, TypeError,
+            ZeroDivisionError, UnicodeDecodeError) as e:
+        return None, traceback.format_exc() + '\n\n'
+        e = e  # To remove PEP8 error since e isn't used.
 
 
 if __name__ == '__main__':
