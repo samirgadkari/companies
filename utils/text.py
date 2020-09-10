@@ -61,6 +61,9 @@ def amount(text):
     if text[-1:] == ',':
         return None
 
+    if len(text) == 1 and text[0] == '.':
+        return None
+
     if '(' in text:
         negative = True
     text = text.strip() \
@@ -72,6 +75,11 @@ def amount(text):
         return None
 
     if not number(text):
+        return None
+
+    # Check if text is single . after the strip
+    # has changed it's length
+    if len(text) == 1 and text[0] == '.':
         return None
 
     value = float(text)

@@ -4,7 +4,8 @@ from data.get.get_companies_in_sector import get_companies
 from extract.extract import extract_all_tables
 from extract.filter import filter_data
 from generate.generate import check_hand_created_samples, generate_samples
-from data.transform.html.table import create_table
+from generate.select_tables import select_tables
+from transform.tabularize3.table import create_table
 from transform.html_to_json import all_html_to_json
 from ml.clean_tables import clean_all_tables
 from ml.find_all_tag_names import find_unprocessed_tag_names
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     switcher = {
         'check_hand_created_samples': check_hand_created_samples,
         'generate_samples': generate_samples,
+        'select_tables': select_tables,
         'get_10Ks':       get_10Ks,
         'get_companies':  get_companies,
         'filter':         filter_data,
