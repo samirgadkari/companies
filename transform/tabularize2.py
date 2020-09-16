@@ -24,7 +24,7 @@ def tabularize2(df):
         table_data = []
 
         def update(table, name, values):
-            values = [str(np.nan) if isinstance(v, tuple) else v
+            values = ["" if isinstance(v, tuple) else v
                       for v in values]
             table.append({'name': name,
                           'values': list(map(str, values))})
