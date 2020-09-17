@@ -1,0 +1,46 @@
+#!/usr/local/bin/python
+import os
+from utils.environ import generated_html_json_dir, generated_data_dir
+from unescape import unescape_all_tables
+from generate.generate import generate_samples
+from ml.encode import find_training_encodings, encode_training_files
+from ml.decode import decode_training_files
+from remove_single_parens import remove_single_parens
+
+# generated-html-json/*.table-extracted ->
+#   generated-html-json/*.unescaped
+print(f'-------------- UNESCAPING ---------------')
+unescape_all_tables(os.path.join(generated_html_json_dir(), '*.table-extracted'))
+
+# Pre-process generated HTML file since it could have
+# a td like:
+# <td> ) </td>   or
+# <td> ( </td>
+# Since we have converted all of our negative numbers to
+# (89) for example, we don't need the separate <td>
+# generated-html-json/*.unescaped -> generated-html-json/*.unescaped
+print(f'-------------- REMOVE SINGLE PARENS ---------------')
+remove_single_parens(os.path.join(generated_html_json_dir(), '*.unescaped'))
+
+# generated-html-json/*.unescaped, *.json ->
+#   generated-data/number.input, number.table-extracted,
+#                  number.expected_json
+print(f'-------------- GENERATING SAMPLES ---------------')
+generate_samples()
+
+# generated-data/number.table-extracted, number.expected_json ->
+#   generated-data/tokens, generated-data/training_filenames
+print(f'-------------- FIND TRAINING ENCODINGS ---------------')
+find_training_encodings()
+
+# generated-data/number.table-extracted, number.expected_json,
+#   generated-data/tokens, generated-data/training_filenames ->
+#   generated-data/number.encoded
+print(f'-------------- ENCODE TRAINING FILES ---------------')
+encode_training_files()
+
+# generated-data/number.encoded, generated-data/tokens ->
+#   generated-data/number.decoded
+print(f'-------------- DECODE TRAINING FILES ---------------')
+decode_training_files()
+

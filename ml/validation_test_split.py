@@ -107,7 +107,10 @@ def matching_filenames(saved_filenames_path,
         # Some of our directories will have files which have been processed.
         # Ignore those files by filtering them out.
         all_filenames = [fn for fn in all_filenames if
-                         fn.endswith(('html', 'json', 'table-extracted'))]
+                         fn.endswith(('html', 'json',
+                                      'expected_json',
+                                      'table-extracted',
+                                      'unescaped'))]
         all_filenames.sort()
 
         if filename_type == FILETYPE_TRAINING:
@@ -126,7 +129,7 @@ def matching_filenames(saved_filenames_path,
 
 def test_matching_filenames(training):
     paths = [os.path.join(cleaned_tags_dir(),
-                          '*', '10-k', '*', '*', '*.table-extracted')]
+                          '*', '10-k', '*', '*', '*.unescaped')]
     saved_filenames_path = os.path.join(cleaned_tags_dir(),
                                         'validation_test_split')
     if int(training) == FILETYPE_TRAINING:

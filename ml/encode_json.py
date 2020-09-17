@@ -4,7 +4,8 @@ from ml.encode_common import update_seq_and_number_dict, convert_dict_values, \
     encode_file
 from utils.file import write_json_to_file
 
-regex_words = re.compile(r'"table_number_interpretation"|'
+regex_words = re.compile(r'"header"|'
+                         r'"table_number_interpretation"|'
                          r'"table_years_months"|'
                          r'"table_data"|'
                          r'"name"|'

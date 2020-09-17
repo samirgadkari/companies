@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 FRACTION_MULT_DIV = 100.0
 regex_any_digits = re.compile(r'\d', re.MULTILINE)
-regex_number = re.compile(r'^\$?\s*(\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
+regex_number = re.compile(r'^\$?\s*(\-?\(?[\d\,]*?\.?[\d]*\)?)\%?$', re.MULTILINE)
+YEARS_RANGE = range(1990, 2050)
 
 
 # These are the hard-coded numbers that are output for particular conditions.
@@ -110,6 +111,17 @@ def number_to_sequence(is_negative, num_str, is_percent):
 
 
 def is_number(text):
+    text = text.strip()
+    text_len = len(text)
+    if text_len == 0:
+        return False
+
+    if text_len == 1 and text == '-':
+        return True
+
+    if text_len == 1 and text == '$':
+        return False
+
     return bool(regex_number.fullmatch(text))
 
 

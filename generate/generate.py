@@ -7,15 +7,18 @@ import os
 import sys
 import numpy as np
 import string
+from bs4 import BeautifulSoup
 from decouple import config
+from ml.number import is_number
 from utils.file import get_filenames, read_file, write_file, \
     get_json_from_file, write_json_to_file, copy_file
 from utils.html import replace_names, replace_values, \
-    make_html_strings_unique
-
-text_samples_dir = config('TEXT_SAMPLES_DIR')
-html_samples_dir = config('HTML_SAMPLES_DIR')
-generated_samples_dir = config('GENERATED_SAMPLES_DIR')
+    make_html_strings_unique, is_unicode_em_dash, \
+    convert_unicode_em_dash, YIELDED_STR, YIELDED_NUM, \
+    strings_and_values_in_html
+from utils.environ import text_samples_dir, generated_data_dir, \
+    html_samples_dir, generated_html_json_dir
+from ml.clean_tables import remove_comments
 
 # If the length of the data is more than this size,
 # we pick a length between this length and the actual
@@ -71,9 +74,7 @@ def top_level_names(d):
     return \
         get(json_=d,
             result=[],
-            filter_=FilterItems(
-                ['table_number_interpretation', 'table_years',
-                 'table_months', 'table_years_months', 'name']).apply,
+            filter_=FilterItems(['header']).apply,
             output=append_result_to_list)
 
 
@@ -90,7 +91,8 @@ def get_values(d):
     return \
         get(json_=d,
             result=[],
-            filter_=FilterItems(['table_data', 'values', 'sections']).apply,
+            filter_=FilterItems(['table_data',
+                                 'values', 'sections']).apply,
             output=append_result_to_list,
             recurse=True)
 
@@ -112,7 +114,7 @@ def data_contains_all_elements(data, elements):
 def check_hand_created_samples():
     result = True
     for samples_dir, input_name in \
-        zip([text_samples_dir, html_samples_dir],
+        zip([text_samples_dir(), html_samples_dir()],
             ['text_input', 'html_input']):
         data_filenames = get_filenames(samples_dir, input_name, '*')
         json_filenames = get_filenames(samples_dir, 'json_input', '*')
@@ -160,23 +162,42 @@ def randomize_string(s, all_chars, mappings):
     # if s in mappings:
     #     return mappings[s]
 
+    # Ignore the '-' since it denotes a blank space in a value's location.
+    if is_unicode_em_dash(s):
+        return convert_unicode_em_dash(s)
+
     if len(s) > MIN_DATA_SIZE:
         length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
     else:
         length = MIN_DATA_SIZE
-    return ''.join(np.random.choice(all_chars, length))
+    result = ''.join(np.random.choice(all_chars, length))
+    return result.strip()
 
 
 def randomize_number(num, all_chars, mappings):
+    # We want to maintain the 999999999 number to signify
+    # an empty value in the table.
+    if num == '999999999':
+        return num
+
     s = randomize_string(num, all_chars, mappings)
+    if len(s) == 0:
+        return ""
+    if len(s) == 1:
+        return s
+
     is_negative, is_fraction = np.random.choice([True, False], 2)
 
+    # We limit the fractional part to 2 digits since that is
+    # what we see in the actual tables, and it is easier
+    # to store the numbers after multiplying it by 100
+    # as an integer.
     if is_negative & is_fraction:
-        return '(' + s[:2] + '.' + s[2:] + ')'
+        return '(0.' + s[:2] + ')'
     elif is_negative:
         return '(' + s + ')'
     elif is_fraction:
-        return s[:2] + '.' + s[2:]
+        return '0.' + s[:2]
     else:
         # This removes any perceding zeros for the number.
         return str(int(s))
@@ -184,8 +205,6 @@ def randomize_number(num, all_chars, mappings):
 
 def update_expected_strings(json_, mappings):
     map_keys = list(mappings.keys())
-    # if isinstance(json_, list):
-    #     import pdb; pdb.set_trace()
     if isinstance(json_, dict):
         new_dict = {}
         for k, v in json_.items():
@@ -212,45 +231,59 @@ def update_expected_strings(json_, mappings):
 
 
 def generate_input(input_fn, fn_type, json_input_fn, all_chars):
+    def separate_values_strings(top_tag):
+        filter_str = lambda x: True if x[0] == YIELDED_STR else False
+        map_str = lambda x: (x[1], x[2])
+        filter_value = lambda x: True if x[0] == YIELDED_NUM else False
+        map_value = lambda x: (x[1], x[2])
+
+        def extract_tag_str(html_strings_tags_values, filter_fn, map_fn):
+            temp = filter(filter_fn, html_strings_tags_values)
+            return list(map(map_fn, temp))
+
+        html_strings_tags_values = list(strings_and_values_in_html(top_tag))
+        html_tags_strings = extract_tag_str(html_strings_tags_values,
+                                            filter_str, map_str)
+
+        html_tags_values = extract_tag_str(html_strings_tags_values,
+                                        filter_value, map_value)
+        return html_tags_strings, html_tags_values
+
+    if fn_type != 'unescaped':
+        raise ValueError(f'We are only supporting HTML at this point - '
+                         f'not {fn_type}')
+
     input_data = read_file(input_fn)
-    # input_data = replace_named_or_numeric(input_data)
+    top_tag = BeautifulSoup(input_data, 'html.parser')
+    remove_comments(top_tag)
+    html_tags_strings, html_tags_values = separate_values_strings(top_tag)
 
     json_input = get_json_from_file(json_input_fn)
 
-    # If the names in the JSON document are not unique,
-    # make them unique. This way, the generated output
-    # HTML document has unique names and we can see
-    # that we get the right name at the right location
-    # after we have encoded and decoded it.
-    names = top_level_names(json_input)
-    names.extend(get_names(json_input))
-    len_names = len(names)
-    len_set_names = len(set(names))
-    if len_names != len_set_names:
-        input_data, names = \
-            make_html_strings_unique(input_data, names)
+    json_names = top_level_names(json_input)
+    json_names.extend(get_names(json_input))
 
     mappings = {}  # original string to new string
-    for name in names:
-        mappings[name] = randomize_string(name, all_chars, mappings)
+    for json_name in json_names:
+        mappings[json_name] = randomize_string(json_name, all_chars, mappings)
 
-    input_data = replace_names(input_data, mappings)
+    json_values = list(get_values(json_input))
+    json_values = \
+        list(filter(lambda x: True if is_number(x) else False, json_values))
 
-    if fn_type == 'html':
-        json_values = list(get_values(json_input))
-        # For values, we only need to replace numbers.
-        all_chars = list(string.digits)
-        updated_strings = [randomize_number(value, all_chars, mappings)
-                           for value in json_values]
-        input_data, json_mappings = \
-            replace_values(input_data, json_values, updated_strings)
-        mappings.update(json_mappings)
-    else:
-        raise ValueError('We are only supporting HTML at this point - '
-                         'not {fn_type}')
+    replace_names(json_names, html_tags_strings, mappings)
 
+    all_chars = list(string.digits)
+    value_mappings = \
+        {value: randomize_number(value, all_chars, mappings)
+         for value in json_values}
+    mappings.update(value_mappings)
+    mappings['-'] = '999999999'
+
+    replace_values(json_values, html_tags_values, mappings)
     json_expected = update_expected_strings(json_input, mappings)
-    return input_data, json_expected
+
+    return str(top_tag), json_expected
 
 
 def generate_random_text(input_filenames, num_output_files):
@@ -261,22 +294,24 @@ def generate_random_text(input_filenames, num_output_files):
 
     for id in range(num_output_files):
         input_fn = np.random.choice(input_filenames)
-        # input_fn = './data/extract/samples/html/html_input/2.html'
+        # input_fn = '/Volumes/datadrive/generated-html-json/0000846617_bridge_bancorp_inc__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__17.unescaped'
+
+        # To be done again as some of the numbers that should be empty are 9's,
+        # even in the html page.
         print(f'input_fn: {input_fn}')
 
         fn_parts = input_fn.split(os.sep)
         fn_name = fn_parts[-1].split('.')
         fn_prefix, fn_type = fn_name[0], fn_name[1]
 
-        json_input_fn = os.path.join(*fn_parts[:-2],
-                                     'json_input',
-                                     fn_prefix + '.json')
-        json_generated_output_fn = os.path.join(generated_samples_dir,
+        json_input_fn = os.sep + os.path.join(*fn_parts[:-1],
+                                              fn_prefix + '.json')
+        json_generated_output_fn = os.path.join(generated_data_dir(),
                                                 str(id) + '.' + fn_type)
-        json_expected_output_fn = os.path.join(generated_samples_dir,
+        json_expected_output_fn = os.path.join(generated_data_dir(),
                                                str(id) + '.expected_json')
 
-        input_generated_fn = os.path.join(generated_samples_dir,
+        input_generated_fn = os.path.join(generated_data_dir(),
                                           str(id) + '.input')
         generated_input, json_expected = \
             generate_input(input_fn,
@@ -288,14 +323,15 @@ def generate_random_text(input_filenames, num_output_files):
         write_json_to_file(json_expected_output_fn, json_expected)
         copy_file(input_fn, input_generated_fn)
 
+        # break
+
 
 def generate_samples():
     data_filenames = []
-    for samples_dir, input_name in \
-        zip([html_samples_dir],
-            ['html_input']):
-        sorted_files = sorted(list(get_filenames(samples_dir,
-                                                 input_name, '*')))
+    for samples_dir in [generated_html_json_dir()]:
+        sorted_files = sorted(list(get_filenames(samples_dir, '*')))
+        sorted_files = list(filter(lambda x: x.endswith('unescaped'),
+                                   sorted_files))
         data_filenames.extend(sorted_files)
 
     generate_random_text(data_filenames, 10)

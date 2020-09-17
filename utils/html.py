@@ -1,7 +1,7 @@
 import re
 import string
 from bs4 import BeautifulSoup, NavigableString
-from ml.number import is_number
+from ml.number import is_number, YEARS_RANGE
 
 regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
@@ -11,6 +11,7 @@ regex_multiple_semicolons = re.compile(r'\;{2,}', re.MULTILINE)
 regex_subattr_no_value = re.compile(r'\;[^\;\:]+\;', re.MULTILINE)
 regex_named_or_numeric = re.compile(r'(?:\&.*?\;|\\+x..)',
                                     re.MULTILINE)
+regex_whitespace = re.compile(r'\s+', re.MULTILINE)
 
 # tag.unwrap(): removes the tag and it's attributes,
 # but keeps the text inside.
@@ -78,6 +79,26 @@ tag_actions = {
     'u':              'untouched',
     'ul':             'decompose',
 }
+
+
+UNICODE_EM_DASH = 8212
+UNICODE_ASCII_DASH = 45
+
+
+def is_unicode_em_dash(s):
+    if len(s.strip()) != 1:
+        return False
+    return ord(s.strip()) == UNICODE_EM_DASH
+
+
+def convert_unicode_em_dash(s):
+    if len(s.strip()) != 1:
+        return s
+
+    if is_unicode_em_dash(s):
+        return chr(UNICODE_ASCII_DASH)
+    else:
+        return s
 
 
 def replace_html_tags(text):
@@ -191,73 +212,179 @@ def navigable_string(tag):
             yield from navigable_string(child)
 
 
+def handle_single_parens(html_data):
+
+    top_tag = BeautifulSoup(html_data, 'html.parser')
+    remove_tags = []
+
+    for tag in navigable_string(top_tag):
+
+        tag_str = str(tag).strip()
+
+        if is_number(tag_str):
+            if tag_str[0] != '(':
+                continue
+
+            next_sibling = tag.parent.find_next_sibling()
+            if next_sibling is None:
+                continue
+
+            first_child = next(next_sibling.children)
+            if first_child is None:
+                continue
+            first_child_str = str(first_child).strip()
+
+            if first_child_str == ')':
+                tag.parent.append(')')
+                remove_tags.append(next_sibling)
+
+    for tag in remove_tags:
+        tag.clear()
+
+    return top_tag
+
+
 def get_number_text(text):
 
     text = text.strip()
+
+    if len(text) == 1 and (text == '(' or text == ')'):
+        return ''
+    is_negative = True if '(' in text or ')' in text else False
+
+    if len(text) == 1 and text == chr(UNICODE_ASCII_DASH):
+        return chr(UNICODE_ASCII_DASH)
+
     for c in '$,% \t\n()':
         text = text.replace(c, '')
+    if is_negative:
+        text = '-' + text
+
     return text
 
 
-def replace_values(html_data, json_values, updated_str):
+YIELDED_STR = 0
+YIELDED_NUM = 1
+
+def strings_and_values_in_html(top_tag):
+    HOW_MANY_NUMBERS_TO_CHECK_FOR_YEARS = 5
+    yielded_nums = 0
+
+    def replace_regex_whitespaces(text):
+        return regex_whitespace.sub(' ', text)
+
+    def extract_number(tag):
+
+        nonlocal yielded_nums
+
+        s = str(tag).strip()
+
+        if len(s) == 1:
+            s = convert_unicode_em_dash(s)
+
+        if s == '\n':
+            return
+
+        s_num = get_number_text(s)
+        if s_num == '':
+            return
+
+        if is_number(s_num):
+            if len(s_num) == 1 and s_num == chr(UNICODE_ASCII_DASH):
+                yielded_nums += 1
+                yield (YIELDED_NUM, tag, s_num)
+            elif '.' not in s_num and \
+                    int(s_num) in YEARS_RANGE and \
+                    yielded_nums < HOW_MANY_NUMBERS_TO_CHECK_FOR_YEARS:
+                if tag.parent.string is None:
+                    raise ValueError('tag.parent.string is None')
+                yield (YIELDED_STR, tag, s_num)
+            else:
+                yielded_nums += 1
+                yield (YIELDED_NUM, tag, s_num)
+        else:
+            yield (YIELDED_STR, tag, replace_regex_whitespaces(s))
+
+    for tag in navigable_string(top_tag):
+        yield from extract_number(tag)
+
+
+def print_navigable_string_values(html_data):
     top_tag = BeautifulSoup(html_data, 'html.parser')
-    mappings = {}
-    count = 0
-
-    for ori_str in json_values:
-        for tag in navigable_string(top_tag):
-            s = str(tag)
-            if s == '\n':
-                continue
-
-            s_num = get_number_text(s)
-
-            try:
-                # The comparison of the strings after stripping
-                # handles the case of the original string being ' '
-                # and comparing it to the '' string.
-                # The float comparison is to ensure numbers like
-                # '3.30' compare with '3.3'.
-                # The order of comparisons is important. If the
-                # original string is ' ', float(' ') will result
-                # in a ValueError, which means no matching value
-                # will be found. So we do the string comparison
-                # before the float comparison.
-                if is_number(s) and ((ori_str.strip() == s_num) or
-                                     (float(ori_str) == float(s_num))):
-                    # You should modify the parent of the NavigableString,
-                    # not the NavigableString itself.
-                    if s.strip().endswith('%'):
-                        # Only 2-digit percentages are allowed,
-                        # since this is what we usually see.
-                        # If there are more significant digits,
-                        # they will be ignored.
-                        use_str = '0.' + updated_str[count][:2]
-                    else:
-                        use_str = updated_str[count]
-                    mappings[s_num] = use_str
-                    tag.parent.string = use_str
-                    count += 1
-                    break
-            except ValueError:
-                pass
-
-    if count != len(updated_str):
-        raise \
-            ValueError(f'Error !! We did not process all the strings. '
-                       f'count: {count}, len(updated_str): {len(updated_str)}')
-    return str(top_tag), mappings
+    for tag in navigable_string(top_tag):
+        print(f'{str(tag).strip()}', end='|')
 
 
-def replace_names(html_data, mappings):
-    mapping_tuples = [(k, v) for k, v in mappings.items()]
-    sorted_tuples = sorted(mapping_tuples, key=lambda x: len(x[0]),
-                           reverse=True)
+def json_and_html_tuples(json, html):
+    l1, l2 = zip(*html)
+    return zip(json, l1, l2)
 
-    for k, v in sorted_tuples:
-        html_data = html_data.replace(k, v)
 
-    return html_data
+def update_tag_str(tag, use_str):
+    # If the tag's parent only contains that one tag,
+    # then the string value belonging to the tag
+    # actually belongs to the parent.
+    # If the tag's parent also contains a tag other than yours,
+    # the the string value belonging to the tag
+    # actually belongs to the tag, and not it's parent
+    try:
+        tag.parent.string = use_str
+    except AttributeError:
+        tag.string = use_str
+
+
+def replace_values(json_values, html_tags_values, mappings):
+    # print_navigable_string_values(html_data)
+
+    number_json_values = len(json_values)
+    number_html_values = len(html_tags_values)
+    if number_json_values != number_html_values:
+        raise ValueError(f'Number of values in JSON file differs from '
+                         f' number of values in HTML file '
+                         f'JSON: {number_json_values} HTML: {number_html_values}\n'
+                         f'json_values:\n {json_values}\n'
+                         f'html_tags_values:\n{html_tags_values}')
+
+    for json_value, html_value_tag, html_value in \
+          json_and_html_tuples(json_values, html_tags_values):
+
+        # print(f'(json_value, html_value): {(json_value, html_value)} ',
+        #       f'ord: {ord(json_value[0]), ord(html_value[0])}')
+
+        if html_value == '-':
+            update_tag_str(html_value_tag, mappings[html_value])
+        elif html_value == json_value:
+            update_tag_str(html_value_tag, mappings[html_value])
+        elif html_value != json_value:
+            raise ValueError(f'html_value: {html_value} json_value: {json_value}\n'
+                             f'Should be equal.')
+
+
+    return mappings
+
+
+def replace_names(names, html_tags_strings, mappings):
+
+    number_json_names = len(names)
+    number_html_names = len(html_tags_strings)
+    if len(names) != len(html_tags_strings):
+        raise ValueError(f'Number of names in JSON file differs from '
+                         f' number of names in HTML file '
+                         f'JSON: {number_json_names} HTML: {number_html_names}\n'
+                         f'names:\n {names}\n'
+                         f'html_tags_strings:\n{html_tags_strings}')
+
+    for json_string, html_tag, html_string in \
+          json_and_html_tuples(names, html_tags_strings):
+
+        # print(f'(json_string, html_string): {(json_string, html_string)}')
+
+        if json_string != html_string:
+            raise ValueError(
+                f'Mismatched strings: ',
+                f'(json_string, html_string): {(json_string, html_string)}')
+
+        update_tag_str(html_tag, mappings[html_string])
 
 
 def remove_spaces_from_strings(top_tag):

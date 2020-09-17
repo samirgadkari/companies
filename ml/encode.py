@@ -1,6 +1,6 @@
 import os
 from utils.file import remove_files, read_file, get_filenames
-from utils.environ import cleaned_tags_dir, generated_samples_dir, tokens_file
+from utils.environ import cleaned_tags_dir, generated_data_dir, tokens_file
 from ml.tokens import write_tokens_file, remove_all_tokens_files, \
     get_tokens_filename, read_tokens_file, get_token_values, \
     flip_tokens_keys_values
@@ -33,7 +33,7 @@ def all_encodings(filenames, base_dirname, tokens_path):
         text = read_file(filename)
 
         company_dir_idx = len(base_dirname)
-        if base_dirname == generated_samples_dir():
+        if base_dirname == generated_data_dir():
             company_dir = ''
         else:
             company_dir = filename[company_dir_idx+1:].split(os.sep)[0]
@@ -58,7 +58,8 @@ def all_encodings(filenames, base_dirname, tokens_path):
                                                   company_dir,
                                                   "tokens")
 
-        if filename.endswith('html') or filename.endswith('table-extracted'):
+        if filename.endswith('unescaped') or filename.endswith('html') \
+           or filename.endswith('table-extracted'):
             find_html_table_encodings(filename, text, tokens)
         elif filename.endswith('json'):
             find_json_encodings(filename, text, tokens)
@@ -93,18 +94,18 @@ def find_all_encodings(file_type, paths, saved_filenames_path, tokens_path):
 
 
 def find_training_encodings():
-    paths = [os.path.join(generated_samples_dir(), '*.html'),
-             os.path.join(generated_samples_dir(), '*.expected_json')]
-    saved_filenames_path = os.path.join(generated_samples_dir(),
+    paths = [os.path.join(generated_data_dir(), '*.unescaped'),
+             os.path.join(generated_data_dir(), '*.expected_json')]
+    saved_filenames_path = os.path.join(generated_data_dir(),
                                         'training_filenames')
-    tokens_path = os.path.join(generated_samples_dir(), 'tokens')
+    tokens_path = os.path.join(generated_data_dir(), 'tokens')
     find_all_encodings(FILETYPE_TRAINING, paths, saved_filenames_path,
                        tokens_path)
 
 
 def find_validation_encodings():
     paths = [os.path.join(cleaned_tags_dir(),
-                          '*', '10-k', '*', '*', '*.table-extracted')]
+                          '*', '10-k', '*', '*', '*.unescaped')]
     saved_filenames_path = os.path.join(cleaned_tags_dir(),
                                         'validation_test_split')
     remove_all_tokens_files()
@@ -117,7 +118,7 @@ def find_validation_encodings():
 
 def find_test_encodings():
     paths = [os.path.join(cleaned_tags_dir(),
-                          '*', '10-k', '*', '*', '*.table-extracted')]
+                          '*', '10-k', '*', '*', '*.unescaped')]
     saved_filenames_path = os.path.join(cleaned_tags_dir(),
                                         'validation_test_split')
     remove_all_tokens_files()
@@ -171,18 +172,18 @@ def encode_all_html_tables(file_type, paths,
 
 
 def encode_training_files():
-    paths = [os.path.join(generated_samples_dir(), '*.html'),
-             os.path.join(generated_samples_dir(), '*.expected_json')]
-    saved_filenames_path = os.path.join(generated_samples_dir(),
+    paths = [os.path.join(generated_data_dir(), '*.unescaped'),
+             os.path.join(generated_data_dir(), '*.expected_json')]
+    saved_filenames_path = os.path.join(generated_data_dir(),
                                         'training_filenames')
-    tokens_path = os.path.join(generated_samples_dir(), 'tokens')
+    tokens_path = os.path.join(generated_data_dir(), 'tokens')
     encode_all_html_tables(FILETYPE_TRAINING, paths,
                            saved_filenames_path, tokens_path)
 
 
 def encode_validation_files():
     paths = [os.path.join(cleaned_tags_dir(),
-                          '*', '10-k', '*', '*', '*.table-extracted')]
+                          '*', '10-k', '*', '*', '*.unescaped')]
     saved_filenames_path = os.path.join(cleaned_tags_dir(),
                                         'validation_test_split')
     tokens_path = os.path.join(cleaned_tags_dir(), '*', 'tokens')
@@ -192,7 +193,7 @@ def encode_validation_files():
 
 def encode_test_files():
     paths = [os.path.join(cleaned_tags_dir(),
-                          '*', '10-k', '*', '*', '*.table-extracted')]
+                          '*', '10-k', '*', '*', '*.unescaped')]
     saved_filenames_path = os.path.join(cleaned_tags_dir(),
                                         'validation_test_split')
     tokens_path = os.path.join(cleaned_tags_dir(), '*', 'tokens')
