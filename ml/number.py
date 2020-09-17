@@ -111,7 +111,10 @@ def number_to_sequence(is_negative, num_str, is_percent):
 
 
 def is_number(text):
-    text_len = len(text.strip())
+    text = text.strip()
+    text_len = len(text)
+    if text_len == 0:
+        return False
 
     if text_len == 1 and text == '-':
         return True

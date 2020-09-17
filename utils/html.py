@@ -212,6 +212,38 @@ def navigable_string(tag):
             yield from navigable_string(child)
 
 
+def handle_single_parens(html_data):
+
+    top_tag = BeautifulSoup(html_data, 'html.parser')
+    remove_tags = []
+
+    for tag in navigable_string(top_tag):
+
+        tag_str = str(tag).strip()
+
+        if is_number(tag_str):
+            if tag_str[0] != '(':
+                continue
+
+            next_sibling = tag.parent.find_next_sibling()
+            if next_sibling is None:
+                continue
+
+            first_child = next(next_sibling.children)
+            if first_child is None:
+                continue
+            first_child_str = str(first_child).strip()
+
+            if first_child_str == ')':
+                tag.parent.append(')')
+                remove_tags.append(next_sibling)
+
+    for tag in remove_tags:
+        tag.clear()
+
+    return top_tag
+
+
 def get_number_text(text):
 
     text = text.strip()
@@ -233,7 +265,6 @@ def get_number_text(text):
 
 YIELDED_STR = 0
 YIELDED_NUM = 1
-
 
 def strings_and_values_in_html(top_tag):
     HOW_MANY_NUMBERS_TO_CHECK_FOR_YEARS = 5
@@ -260,7 +291,6 @@ def strings_and_values_in_html(top_tag):
 
         if is_number(s_num):
             if len(s_num) == 1 and s_num == chr(UNICODE_ASCII_DASH):
-                # print(f's_num: {s_num}')
                 yielded_nums += 1
                 yield (YIELDED_NUM, tag, s_num)
             elif '.' not in s_num and \
@@ -269,10 +299,7 @@ def strings_and_values_in_html(top_tag):
                 if tag.parent.string is None:
                     raise ValueError('tag.parent.string is None')
                 yield (YIELDED_STR, tag, s_num)
-                yield (YIELDED_NUM, tag, s_num)
-                yielded_nums += 1
             else:
-                # print(f's_num: {s_num}')
                 yielded_nums += 1
                 yield (YIELDED_NUM, tag, s_num)
         else:
@@ -306,9 +333,8 @@ def update_tag_str(tag, use_str):
         tag.string = use_str
 
 
-def replace_values(json_values, html_tags_values, updated_values):
+def replace_values(json_values, html_tags_values, mappings):
     # print_navigable_string_values(html_data)
-    mappings = {}
 
     number_json_values = len(json_values)
     number_html_values = len(html_tags_values)
@@ -319,29 +345,20 @@ def replace_values(json_values, html_tags_values, updated_values):
                          f'json_values:\n {json_values}\n'
                          f'html_tags_values:\n{html_tags_values}')
 
-    updated_values_count = 0
     for json_value, html_value_tag, html_value in \
           json_and_html_tuples(json_values, html_tags_values):
 
-        print(f'(json_value, html_value): {(json_value, html_value)} ',
-              f'ord: {ord(json_value[0]), ord(html_value[0])}')
+        # print(f'(json_value, html_value): {(json_value, html_value)} ',
+        #       f'ord: {ord(json_value[0]), ord(html_value[0])}')
 
         if html_value == '-':
-            use_str = '999999999'
-            mappings['-'] = use_str
-            update_tag_str(html_value_tag, use_str)
-            continue
-
-        if html_value == json_value:
-            use_str = updated_values[updated_values_count]
-            mappings[html_value] = updated_values[updated_values_count]
-            updated_values_count += 1
-            update_tag_str(html_value_tag, use_str)
-            continue
-
-        if html_value != json_value:
+            update_tag_str(html_value_tag, mappings[html_value])
+        elif html_value == json_value:
+            update_tag_str(html_value_tag, mappings[html_value])
+        elif html_value != json_value:
             raise ValueError(f'html_value: {html_value} json_value: {json_value}\n'
                              f'Should be equal.')
+
 
     return mappings
 
@@ -360,7 +377,7 @@ def replace_names(names, html_tags_strings, mappings):
     for json_string, html_tag, html_string in \
           json_and_html_tuples(names, html_tags_strings):
 
-        print(f'(json_string, html_string): {(json_string, html_string)}')
+        # print(f'(json_string, html_string): {(json_string, html_string)}')
 
         if json_string != html_string:
             raise ValueError(

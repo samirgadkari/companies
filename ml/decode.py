@@ -1,7 +1,7 @@
 import os
 import sys
 from utils.environ import tokens_file, cleaned_tags_dir, \
-    generated_samples_dir
+    generated_data_dir
 from ml.tokens import read_tokens_file
 from ml.number import Number, convert_whole_to_fraction
 from utils.file import write_file, remove_files, \
@@ -56,7 +56,7 @@ def remove_all_decoded_files():
 
 def decode_all_files(filenames, tokens_path):
 
-    remove_all_decoded_files()
+    # remove_all_decoded_files()
 
     # num_dirs_to_process = 3
     # current_company_dir = ''
@@ -86,8 +86,8 @@ def decode_all_files(filenames, tokens_path):
 
 
 def decode_training_files():
-    paths = os.path.join(generated_samples_dir(), '*.encoded')
-    tokens_path = os.path.join(generated_samples_dir(), 'tokens')
+    paths = os.path.join(generated_data_dir(), '*.encoded')
+    tokens_path = os.path.join(generated_data_dir(), 'tokens')
     decode_all_files(get_filenames(paths), tokens_path)
 
 

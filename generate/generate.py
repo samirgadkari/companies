@@ -16,7 +16,7 @@ from utils.html import replace_names, replace_values, \
     make_html_strings_unique, is_unicode_em_dash, \
     convert_unicode_em_dash, YIELDED_STR, YIELDED_NUM, \
     strings_and_values_in_html
-from utils.environ import generated_samples_dir, text_samples_dir, \
+from utils.environ import text_samples_dir, generated_data_dir, \
     html_samples_dir, generated_html_json_dir
 from ml.clean_tables import remove_comments
 
@@ -91,7 +91,7 @@ def get_values(d):
     return \
         get(json_=d,
             result=[],
-            filter_=FilterItems(['header', 'table_data',
+            filter_=FilterItems(['table_data',
                                  'values', 'sections']).apply,
             output=append_result_to_list,
             recurse=True)
@@ -170,7 +170,8 @@ def randomize_string(s, all_chars, mappings):
         length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
     else:
         length = MIN_DATA_SIZE
-    return ''.join(np.random.choice(all_chars, length))
+    result = ''.join(np.random.choice(all_chars, length))
+    return result.strip()
 
 
 def randomize_number(num, all_chars, mappings):
@@ -248,6 +249,10 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
                                         filter_value, map_value)
         return html_tags_strings, html_tags_values
 
+    if fn_type != 'unescaped':
+        raise ValueError(f'We are only supporting HTML at this point - '
+                         f'not {fn_type}')
+
     input_data = read_file(input_fn)
     top_tag = BeautifulSoup(input_data, 'html.parser')
     remove_comments(top_tag)
@@ -255,51 +260,29 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     json_input = get_json_from_file(json_input_fn)
 
-    # If the names in the JSON document are not unique,
-    # make them unique. This way, the generated output
-    # HTML document has unique names and we can see
-    # that we get the right name at the right location
-    # after we have encoded and decoded it.
     json_names = top_level_names(json_input)
     json_names.extend(get_names(json_input))
-    # len_names = len(names)
-    # len_set_names = len(set(names))
-    # if len_names != len_set_names:
-    #     input_data, names = \
-    #         make_html_strings_unique(input_data, names)
-
 
     mappings = {}  # original string to new string
     for json_name in json_names:
         mappings[json_name] = randomize_string(json_name, all_chars, mappings)
-    # Make sure there is no such mapping as it will
-    # supercede all mappings.
-    if '' in mappings.keys():
-        del mappings['']
 
-    input_data = replace_names(json_names, html_tags_strings, mappings)
+    json_values = list(get_values(json_input))
+    json_values = \
+        list(filter(lambda x: True if is_number(x) else False, json_values))
 
-    if fn_type == 'table-extracted':
-        json_values = list(get_values(json_input))
-        # Remove all values that are strings
-        json_values = \
-            list(filter(lambda x: True if is_number(x) else False, json_values))
+    replace_names(json_names, html_tags_strings, mappings)
 
-        all_chars = list(string.digits)
-        updated_values = [randomize_number(value, all_chars, mappings)
-                           for value in json_values]
+    all_chars = list(string.digits)
+    value_mappings = \
+        {value: randomize_number(value, all_chars, mappings)
+         for value in json_values}
+    mappings.update(value_mappings)
+    mappings['-'] = '999999999'
 
-        json_mappings = replace_values(json_values, html_tags_values, updated_values)
-        # Make sure there is no such mapping as it will
-        # supercede all mappings.
-        if '' in mappings.keys():
-            del mappings['']
-        mappings.update(json_mappings)
-    else:
-        raise ValueError('We are only supporting HTML at this point - '
-                         'not {fn_type}')
-
+    replace_values(json_values, html_tags_values, mappings)
     json_expected = update_expected_strings(json_input, mappings)
+
     return str(top_tag), json_expected
 
 
@@ -311,7 +294,7 @@ def generate_random_text(input_filenames, num_output_files):
 
     for id in range(num_output_files):
         input_fn = np.random.choice(input_filenames)
-        # input_fn = '/Volumes/datadrive/generated-html-json/0000846617_bridge_bancorp_inc__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__17.table-extracted'
+        # input_fn = '/Volumes/datadrive/generated-html-json/0000846617_bridge_bancorp_inc__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__17.unescaped'
 
         # To be done again as some of the numbers that should be empty are 9's,
         # even in the html page.
@@ -323,12 +306,12 @@ def generate_random_text(input_filenames, num_output_files):
 
         json_input_fn = os.sep + os.path.join(*fn_parts[:-1],
                                               fn_prefix + '.json')
-        json_generated_output_fn = os.path.join(generated_samples_dir(),
+        json_generated_output_fn = os.path.join(generated_data_dir(),
                                                 str(id) + '.' + fn_type)
-        json_expected_output_fn = os.path.join(generated_samples_dir(),
+        json_expected_output_fn = os.path.join(generated_data_dir(),
                                                str(id) + '.expected_json')
 
-        input_generated_fn = os.path.join(generated_samples_dir(),
+        input_generated_fn = os.path.join(generated_data_dir(),
                                           str(id) + '.input')
         generated_input, json_expected = \
             generate_input(input_fn,
@@ -347,7 +330,7 @@ def generate_samples():
     data_filenames = []
     for samples_dir in [generated_html_json_dir()]:
         sorted_files = sorted(list(get_filenames(samples_dir, '*')))
-        sorted_files = list(filter(lambda x: x.endswith('table-extracted'),
+        sorted_files = list(filter(lambda x: x.endswith('unescaped'),
                                    sorted_files))
         data_filenames.extend(sorted_files)
 
