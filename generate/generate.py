@@ -50,7 +50,6 @@ def is_list(v):
     return isinstance(v, list)
 
 
-# TODO: This is too dense - need to clean it up !!
 def get(json_={}, result=[], filter_=None, output=[], recurse=True):
     if isinstance(json_, dict):
         for k, v in json_.items():
@@ -148,19 +147,21 @@ def set_of_all_chars_in_data():
     all_chars = list(string.ascii_lowercase)
     all_chars.extend(string.ascii_uppercase)
     all_chars.extend(string.digits)
-    all_chars.append(' ')
+    all_chars.extend(' ' * 5)
 
     # We convert it to a set first to ensure that there are no
     # duplicate characters
     return list(set(all_chars))
 
 
-def randomize_string(s, all_chars, mappings):
-    # We want to have separate mappings for even the same value
-    # which was found in multiple places. This makes it a guarantee
-    # that we will map to the correct location in the JSON file.
-    # if s in mappings:
-    #     return mappings[s]
+def randomize_string(s, mappings):
+    all_chars = list(string.ascii_lowercase)
+    all_chars.extend(string.ascii_uppercase)
+    all_chars.extend(' ' * 5)
+
+    # We convert it to a set first to ensure that there are no
+    # duplicate characters
+    all_chars = list(set(all_chars))
 
     # Ignore the '-' since it denotes a blank space in a value's location.
     if is_unicode_em_dash(s):
@@ -170,21 +171,34 @@ def randomize_string(s, all_chars, mappings):
         length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
     else:
         length = MIN_DATA_SIZE
-    result = ''.join(np.random.choice(all_chars, length))
+
+    result = ''
+    while len(result.strip()) == 0:
+        result = ''.join(np.random.choice(all_chars, length))
+
     return result.strip()
 
 
-def randomize_number(num, all_chars, mappings):
+def randomize_number(num, mappings):
     # We want to maintain the 999999999 number to signify
     # an empty value in the table.
-    if num == '999999999':
+    if num == '999999999' or \
+       len(num) == 1:
         return num
 
-    s = randomize_string(num, all_chars, mappings)
-    if len(s) == 0:
+    if len(num) == 0:
         return ""
-    if len(s) == 1:
-        return s
+
+    all_chars = list(string.digits)
+
+    if len(num) > MIN_DATA_SIZE:
+        length = np.random.randint(MIN_DATA_SIZE, len(num) + 1)
+    else:
+        length = MIN_DATA_SIZE
+
+    s = ''
+    while len(s.strip()) == 0:
+        s = ''.join(np.random.choice(all_chars, length))
 
     is_negative, is_fraction = np.random.choice([True, False], 2)
 
@@ -265,7 +279,7 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     mappings = {}  # original string to new string
     for json_name in json_names:
-        mappings[json_name] = randomize_string(json_name, all_chars, mappings)
+        mappings[json_name] = randomize_string(json_name, mappings)
 
     json_values = list(get_values(json_input))
     json_values = \
@@ -273,12 +287,16 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     replace_names(json_names, html_tags_strings, mappings)
 
+    # print(f'mappings: {mappings}\n\n')
+
     all_chars = list(string.digits)
     value_mappings = \
-        {value: randomize_number(value, all_chars, mappings)
+        {value: randomize_number(value, mappings)
          for value in json_values}
     mappings.update(value_mappings)
     mappings['-'] = '999999999'
+
+    # print(f'mappings: {mappings}')
 
     replace_values(json_values, html_tags_values, mappings)
     json_expected = update_expected_strings(json_input, mappings)
@@ -294,7 +312,7 @@ def generate_random_text(input_filenames, num_output_files):
 
     for id in range(num_output_files):
         input_fn = np.random.choice(input_filenames)
-        # input_fn = '/Volumes/datadrive/generated-html-json/0000846617_bridge_bancorp_inc__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__17.unescaped'
+        # input_fn = '/Volumes/datadrive/generated-html-json/0001035713_providian_financial_corp__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__24.unescaped'
 
         # To be done again as some of the numbers that should be empty are 9's,
         # even in the html page.

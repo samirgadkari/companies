@@ -1,5 +1,5 @@
 import re
-from ml.number import get_number, number_to_sequence, Number
+from ml.number import is_number, get_number, number_to_sequence, Number
 from ml.encode_common import update_seq_and_number_dict, convert_dict_values, \
     encode_file
 from utils.file import write_json_to_file
@@ -29,12 +29,15 @@ def get_json_sequences(filename, json_text, write_number_dict=True):
         if len(match.strip()) == 0:
             continue
 
-        is_negative, num_seq, is_percent = get_number(match)
+        if is_number(match):
+            is_negative, num_seq, is_percent = get_number(match)
 
-        if num_seq is not False:
-            words.append(number_to_sequence(is_negative,
-                                            num_seq,
-                                            is_percent))
+            if num_seq is not False:
+                words.append(number_to_sequence(is_negative,
+                                                num_seq,
+                                                is_percent))
+            else:
+                raise ValueError(f'match: {match} is not a number')
         else:
             words.append(match)
 
