@@ -296,8 +296,6 @@ def strings_and_values_in_html(top_tag):
             elif '.' not in s_num and \
                     int(s_num) in YEARS_RANGE and \
                     yielded_nums < HOW_MANY_NUMBERS_TO_CHECK_FOR_YEARS:
-                if tag.parent.string is None:
-                    raise ValueError('tag.parent.string is None')
                 yield (YIELDED_STR, tag, s_num)
             else:
                 yielded_nums += 1
