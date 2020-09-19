@@ -10,11 +10,11 @@ from utils.environ import html_samples_dir
 def remove_single_parens(search_path):
 
     for filename in get_filenames(search_path):
-        # filename = '/Volumes/datadrive/generated-html-json/0001035713_providian_financial_corp__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__24.unescaped'
+        # filename = '/Volumes/datadrive/generated-html-json/0001035713_providian_financial_corp__10-k__2004-01-01_2004-12-31_10-k__tables-extracted_split-tables__24.table-extracted'
 
         print(f'Removing single parens from file: {filename}')
         parts = filename.split('.')
-        out_filename = '.'.join(parts[:-1]) + '.unescaped'
+        out_filename = '.'.join(parts[:-1]) + '.remove-single-parens'
 
         top_tag = handle_single_parens(read_file(filename))
         write_file(out_filename, str(top_tag))
@@ -22,4 +22,4 @@ def remove_single_parens(search_path):
 
 if __name__ == '__main__':
     remove_single_parens(os.path.join(generated_html_json_dir(),
-                                      '*.unescaped'))
+                                      '*.table-extracted'))

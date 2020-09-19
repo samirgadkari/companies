@@ -66,9 +66,9 @@ tag_actions = {
     'strong':         'untouched',
     't':              'decompose',
     'table':          'untouched',
-    'td':             'remove_attrs_except[rowspan, colspan, style]',
-    'th':             'remove_attrs_except[rowspan, colspan, style]',
-    'tr':             'remove_attrs_except[rowspan, colspan, style]',
+    'td':             'remove_attrs_except[rowspan, colspan, style, align, width]',
+    'th':             'remove_attrs_except[rowspan, colspan, style, align, width]',
+    'tr':             'remove_attrs_except[rowspan, colspan, style, align, width]',
     'u':              'untouched',
     'ul':             'decompose',
 }
@@ -84,9 +84,8 @@ def clean_tag(tag, directions):
     if 'untouched' in directions:
         return
     elif 'remove_attrs_except' in directions:
-        parts = directions[len('remove_attrs_except')+1:]
-        parts = directions[:-1].split(',')
-        parts = [part[1:] if part[0] == ' ' else part for part in parts]
+        parts = directions[len('remove_attrs_except')+1:-1]
+        parts = list(map(str.strip, parts.split(',')))
         remove_tag_attrs(tag, parts)
     elif 'unwrap' in directions:
         tag.unwrap()
@@ -127,13 +126,11 @@ def remove_tags(table_tag):
     table_tag.smooth()
 
 
-def clean_all_tables():
-    for filename in get_filenames(extracted_tables_dir(),
-                                  '*', '10-k', '*', '*', '*'):
-        filename_suffix = filename[len(extracted_tables_dir()):]
-        out_filename = cleaned_tags_dir() + filename_suffix
-        if file_exists(out_filename):
-            continue
+def clean_all_tables(input_paths):
+    for filename in get_filenames(input_paths):
+        prefix = filename.split(os.sep)[-1].split('.')[0]
+        out_filename = os.path.join(generated_html_json_dir(),
+                                    prefix + '.cleaned')
 
         print(f'filename: {filename}')
         table_tag = BeautifulSoup(read_file(filename), 'html.parser')
