@@ -81,11 +81,9 @@ def find_html_table_encodings(filename, table_text, tokens):
     tokens.update(file_token_seq)
 
 
-def encode_html_table(filename, table_text, tokens,
-                      encoded_num_start_value_shift):
+def encode_html_table(filename, table_text, tokens):
 
     soup = BeautifulSoup(table_text, 'html.parser')
     token_seq, number_dict = get_html_sequences(filename, soup,
                                                 write_number_dict=False)
-    encode_file(filename, token_seq, tokens, number_dict,
-                encoded_num_start_value_shift)
+    encode_file(filename, token_seq, tokens, number_dict)

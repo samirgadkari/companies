@@ -27,18 +27,17 @@ def update_seq_and_number_dict(values, token_seq, word_num,
     return word_num
 
 
-def encode_token(token, tokens, number_dict,
-                 encoded_num_start_value_shift):
+def encode_token(token, tokens, number_dict):
     if is_number_token(token) and token in number_dict:
         num = number_dict[token]
 
         # shift the number sequence start value to
         # maximum value of the tokens + 1
-        result = list(NumberSequence(num.start +
-                                     encoded_num_start_value_shift,
+        result = list(NumberSequence(num.start,
                                      num.negative,
                                      num.number,
-                                     num.fraction, num.percent,
+                                     num.fraction,
+                                     num.percent,
                                      num.end))
         if result is None:
             raise ValueError('Result is None')
@@ -50,12 +49,10 @@ def encode_token(token, tokens, number_dict,
         return result
 
 
-def encode_file(filename, token_seq, tokens, number_dict,
-                encoded_num_start_value_shift):
+def encode_file(filename, token_seq, tokens, number_dict):
 
     encoded_str = []
-    encoded_values = [encode_token(token, tokens, number_dict,
-                                   encoded_num_start_value_shift)
+    encoded_values = [encode_token(token, tokens, number_dict)
                       for token in token_seq]
     for values in encoded_values:
         if isinstance(values, list):

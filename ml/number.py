@@ -113,13 +113,12 @@ def number_to_sequence(is_negative, num_str, is_percent):
 def is_number(text):
     text = text.strip()
     text_len = len(text)
-    if text_len == 0:
-        return False
 
     if text_len == 1 and text == '-':
         return True
 
-    if text_len == 1 and text == '$':
+    if (text_len == 0) or \
+       (text_len == 1 and (text in list(r'.()${}[]":,'))):
         return False
 
     return bool(regex_number.fullmatch(text))

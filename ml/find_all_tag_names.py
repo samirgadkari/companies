@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
 from utils.file import get_filenames, read_file
 from utils.environ import extracted_tables_dir
-from utils.html import find_descendant_tag_names, tag_actions
+from utils.html import find_descendant_tag_names
+from ml.clean_tables import tag_actions
 
 
 def find_unprocessed_tag_names():
