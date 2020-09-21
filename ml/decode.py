@@ -8,7 +8,7 @@ from utils.file import write_file, remove_files, \
     get_filenames
 
 
-def decode_file(filename, tokens, encoded_num_start_value_shift):
+def decode_file(filename, tokens):
 
     with open(filename, 'r') as f:
         numbers = list(map(int, f.read().split()))
@@ -22,8 +22,7 @@ def decode_file(filename, tokens, encoded_num_start_value_shift):
                 idx += 1
                 continue
 
-            if num == (Number.START_SEQUENCE.value +
-                       encoded_num_start_value_shift):
+            if num == (Number.START_SEQUENCE.value):
                 try:
                     is_negative, num, is_fraction, is_percent = \
                         numbers[idx+1], numbers[idx+2], numbers[idx+3], \
@@ -61,7 +60,8 @@ def decode_all_files(filenames, tokens_path):
     # num_dirs_to_process = 3
     # current_company_dir = ''
 
-    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_path)
+    # tokens, encoded_num_start_value_shift = read_tokens_file(tokens_path)
+    tokens = read_tokens_file(tokens_path)
 
     for filename in filenames:
 
@@ -81,7 +81,7 @@ def decode_all_files(filenames, tokens_path):
         #     if num_dirs_to_process <= 0:
         #         break
 
-        decode_file(filename, tokens, encoded_num_start_value_shift)
+        decode_file(filename, tokens)
         # break
 
 
@@ -103,6 +103,6 @@ if __name__ == '__main__':
         print('Usage: python decode.py encoded_filename')
 
     filename = sys.argv[1]
-    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_file())
-    decode_file(filename, tokens,
-                encoded_num_start_value_shift)
+    # tokens, encoded_num_start_value_shift = read_tokens_file(tokens_file())
+    tokens = read_tokens_file(tokens_file())
+    decode_file(filename, tokens)

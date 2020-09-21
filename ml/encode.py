@@ -71,7 +71,7 @@ def all_encodings(filenames, base_dirname, tokens_path):
     all_tokens = set()
     for filename in get_filenames(tokens_path):
 
-        tokens, _ = read_tokens_file(filename)
+        tokens = read_tokens_file(filename)
         all_tokens.update(get_token_values(tokens))
 
     print(f'len(all_tokens): {len(all_tokens)}')
@@ -139,7 +139,7 @@ def encode_all_html_tables(file_type, paths,
     # Read tokens into a dictionary using value:token.
     # This allows us to write the token given each
     # value as we encode each file.
-    tokens, encoded_num_start_value_shift = read_tokens_file(tokens_path)
+    tokens = read_tokens_file(tokens_path)
     tokens = flip_tokens_keys_values(tokens)
 
     # num_dirs_to_process = 3
@@ -164,11 +164,9 @@ def encode_all_html_tables(file_type, paths,
         file_data = read_file(filename)
 
         if filename.endswith('json'):
-            encode_json(filename, file_data, tokens,
-                        encoded_num_start_value_shift)
+            encode_json(filename, file_data, tokens)
         else:
-            encode_html_table(filename, file_data, tokens,
-                              encoded_num_start_value_shift)
+            encode_html_table(filename, file_data, tokens)
 
 
 def encode_training_files():

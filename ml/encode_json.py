@@ -57,9 +57,7 @@ def find_json_encodings(filename, json_text, tokens):
     tokens.update(token_seq)
 
 
-def encode_json(filename, json_text, tokens,
-                encoded_num_start_value_shift):
+def encode_json(filename, json_text, tokens):
     token_seq, number_dict = \
         get_json_sequences(filename, json_text, write_number_dict=False)
-    encode_file(filename, token_seq, tokens, number_dict,
-                encoded_num_start_value_shift)
+    encode_file(filename, token_seq, tokens, number_dict)

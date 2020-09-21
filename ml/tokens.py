@@ -46,12 +46,13 @@ def read_tokens_file(filename):
 
     # Start value of an encoded number can equal a token value.
     # Calculate the shift to be the maximum token value + 1
-    if len(tokens) > 0:
-        token_keys_as_integers = map(int, tokens.keys())
-        encoded_num_start_value_shift = max(token_keys_as_integers) + 1
-        return tokens, encoded_num_start_value_shift
-    else:
-        return tokens, None
+    # if len(tokens) > 0:
+    #     token_keys_as_integers = map(int, tokens.keys())
+    #     encoded_num_start_value_shift = max(token_keys_as_integers) + 1
+    #     return tokens, encoded_num_start_value_shift
+    # else:
+    #     return tokens, None
+    return tokens
 
 
 def get_token_values(tokens):
