@@ -20,6 +20,8 @@ from utils.environ import text_samples_dir, generated_data_dir, \
     html_samples_dir, generated_html_json_dir
 from ml.clean_tables import remove_comments
 
+NUMBER_OF_OUTPUT_FILES = 10
+
 # If the length of the data is more than this size,
 # we pick a length between this length and the actual
 # data size length. If it is less, then we pick
@@ -352,7 +354,7 @@ def generate_samples():
                                    sorted_files))
         data_filenames.extend(sorted_files)
 
-    generate_random_text(data_filenames, 10)
+    generate_random_text(data_filenames, NUMBER_OF_OUTPUT_FILES)
 
 
 if __name__ == '__main__':
