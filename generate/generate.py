@@ -318,7 +318,7 @@ def generate_random_text(input_filenames, num_output_files):
 
         # To be done again as some of the numbers that should be empty are 9's,
         # even in the html page.
-        print(f'input_fn: {input_fn}')
+        print('{:6d}: file: {}'.format(id, input_fn))
 
         fn_parts = input_fn.split(os.sep)
         fn_name = fn_parts[-1].split('.')
