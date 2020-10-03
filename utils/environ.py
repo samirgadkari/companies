@@ -13,6 +13,10 @@ def generated_data_dir():
     return config('GENERATED_DATA_DIR')
 
 
+def valid_test_data_dir():
+    return config('VALID_TEST_DATA_DIR')
+
+
 def generated_html_json_dir():
     return config('GENERATED_HTML_JSON_DIR')
 
