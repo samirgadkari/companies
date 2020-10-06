@@ -1,5 +1,5 @@
 import os
-from utils.file import remove_files, read_file, get_filenames
+from utils.file import remove_files, read_file, get_filenames, create_dirs
 from utils.environ import cleaned_tags_dir, generated_data_dir, tokens_file
 from ml.tokens import write_tokens_file, remove_all_tokens_files, \
     get_tokens_filename, read_tokens_file, get_token_values, \
@@ -22,6 +22,17 @@ def all_encodings(filenames, base_dirname, tokens_path):
     # and later merging these tokens, the token number
     # must always keep incrementing. This way, our dictionary with
     # (token_num: token_value) will not miss any tokens.
+
+    out_dirname_json = \
+        os.path.join(os.sep.join(tokens_path.split(os.sep)[:-1]),
+                     'expected_json',
+                     'encoded')
+    out_dirname_html = \
+        os.path.join(os.sep.join(tokens_path.split(os.sep)[:-1]),
+                     'html',
+                     'encoded')
+    create_dirs([out_dirname_json, out_dirname_html])
+
     current_company_dir = ''
     token_num = Number.START_WORD_NUM.value
     tokens = set()
@@ -60,16 +71,16 @@ def all_encodings(filenames, base_dirname, tokens_path):
 
         if filename.endswith('unescaped') or filename.endswith('html') \
            or filename.endswith('table-extracted'):
-            find_html_table_encodings(filename, text, tokens)
+            find_html_table_encodings(out_dirname_html, filename, text, tokens)
         elif filename.endswith('json'):
-            find_json_encodings(filename, text, tokens)
+            find_json_encodings(out_dirname_json, filename, text, tokens)
     else:
         write_tokens_file(tokens, tokens_filename, token_num)
 
     all_tokens_filename = os.path.join(base_dirname, 'tokens')
 
     all_tokens = set()
-    for filename in get_filenames(tokens_path):
+    for filename in get_filenames([tokens_path]):
 
         tokens = read_tokens_file(filename)
         all_tokens.update(get_token_values(tokens))
@@ -85,20 +96,22 @@ def all_encodings(filenames, base_dirname, tokens_path):
 
 
 def find_all_encodings(file_type, paths, saved_filenames_path, tokens_path):
-    filenames = matching_filenames(saved_filenames_path,
-                                   paths,
-                                   file_type)
+    # filenames = matching_filenames(saved_filenames_path,
+    #                                paths,
+    #                                file_type)
+    filenames = get_filenames(paths)
     print('Starting all encodings')
     base_dirname = os.sep.join(saved_filenames_path.split(os.sep)[:-1])
     all_encodings(filenames, base_dirname, tokens_path)
 
 
 def find_training_encodings():
-    paths = [os.path.join(generated_data_dir(), '*.unescaped'),
-             os.path.join(generated_data_dir(), '*.expected_json')]
+    paths = [os.path.join(generated_data_dir(), 'html', '*.unescaped'),
+             os.path.join(generated_data_dir(), 'expected_json',
+                          '*.expected_json')]
     saved_filenames_path = os.path.join(generated_data_dir(),
                                         'training_filenames')
-    tokens_path = os.path.join(generated_data_dir(), 'tokens')
+    tokens_path = os.path.join(os.path.join(generated_data_dir(), 'tokens'))
     find_all_encodings(FILETYPE_TRAINING, paths, saved_filenames_path,
                        tokens_path)
 
@@ -144,10 +157,22 @@ def encode_all_html_tables(file_type, paths,
 
     # num_dirs_to_process = 3
     # current_company_dir = ''
+    out_dirname_json = \
+        os.path.join(os.sep.join(tokens_path.split(os.sep)[:-1]),
+                     'expected_json',
+                     'encoded')
+    out_dirname_html = \
+        os.path.join(os.sep.join(tokens_path.split(os.sep)[:-1]),
+                     'html',
+                     'encoded')
+    create_dirs([out_dirname_json, out_dirname_html])
 
-    filenames = matching_filenames(saved_filenames_path,
-                                   paths,
-                                   file_type)
+    max_encoded_file_token_len = 0
+    # filenames = matching_filenames(saved_filenames_path,
+    #                                paths,
+    #                                file_type)
+    filenames = get_filenames(paths)
+
     for filename in filenames:
 
         # company_dir_idx = len(cleaned_tags_dir())
@@ -164,14 +189,26 @@ def encode_all_html_tables(file_type, paths,
         file_data = read_file(filename)
 
         if filename.endswith('json'):
-            encode_json(filename, file_data, tokens)
+            token_len = encode_json(out_dirname_json, filename,
+                                    file_data, tokens)
         else:
-            encode_html_table(filename, file_data, tokens)
+            token_len = encode_html_table(out_dirname_html, filename,
+                                          file_data, tokens)
+
+        max_encoded_file_token_len = max(max_encoded_file_token_len, token_len)
+
+    with open(os.path.join(out_dirname_json,
+                           'max_encoded_file_token_len'), 'w') as f:
+        f.write(f'max_encoded_file_token_len={max_encoded_file_token_len}')
+    with open(os.path.join(out_dirname_html,
+                           'max_encoded_file_token_len'), 'w') as f:
+        f.write(f'max_encoded_file_token_len={max_encoded_file_token_len}')
 
 
 def encode_training_files():
-    paths = [os.path.join(generated_data_dir(), '*.unescaped'),
-             os.path.join(generated_data_dir(), '*.expected_json')]
+    paths = [os.path.join(generated_data_dir(), 'html', '*.unescaped'),
+             os.path.join(generated_data_dir(), 'expected_json',
+                          '*.expected_json')]
     saved_filenames_path = os.path.join(generated_data_dir(),
                                         'training_filenames')
     tokens_path = os.path.join(generated_data_dir(), 'tokens')

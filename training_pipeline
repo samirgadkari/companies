@@ -14,8 +14,8 @@ from remove_single_parens import remove_single_parens
 # generated-html-json/*.table-extracted ->
 #   generated-html-json/*.cleaned
 print(f'-------------- CLEAN ALL TABLES ---------------')
-clean_all_tables(os.path.join(generated_html_json_dir(),
-                          '*.table-extracted'))
+clean_all_tables([os.path.join(os.path.join(generated_html_json_dir(),
+                                            '*.table-extracted'))])
 
 # Pre-process generated HTML file since it could have
 # a td sequence like:
@@ -24,14 +24,14 @@ clean_all_tables(os.path.join(generated_html_json_dir(),
 # (89) for example, we don't need the second <td>.
 # generated-html-json/*.cleaned -> generated-html-json/*.remove-single-parens
 print(f'-------------- REMOVE SINGLE PARENS ---------------')
-remove_single_parens(os.path.join(generated_html_json_dir(),
-                                  '*.cleaned'))
+remove_single_parens([os.path.join(generated_html_json_dir(),
+                                   '*.cleaned')])
 
 # Unescape HTML codes, ex. &nbsp; or &#931; to it's unicode form.
 # generated-html-json/*.remove-single-parens -> generated-html-json/*.unescaped
 print(f'-------------- UNESCAPING ---------------')
-unescape_all_tables(os.path.join(generated_html_json_dir(),
-                                 '*.remove-single-parens'))
+unescape_all_tables([os.path.join(generated_html_json_dir(),
+                                  '*.remove-single-parens')])
 
 # generated-html-json/*.unescaped, *.json ->
 #   generated-data/number.input, number.unescaped,

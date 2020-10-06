@@ -1,4 +1,5 @@
 import re
+import os
 from ml.number import is_number, get_number, number_to_sequence, Number
 from ml.encode_common import update_seq_and_number_dict, convert_dict_values, \
     encode_file
@@ -16,7 +17,8 @@ regex_words = re.compile(r'"header"|'
                          r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
 
-def get_json_sequences(filename, json_text, write_number_dict=True):
+def get_json_sequences(out_dirname, filename, json_text,
+                       write_number_dict=True):
     token_seq = []
     word_num = Number.START_WORD_NUM.value
     number_dict = {}
@@ -46,18 +48,20 @@ def get_json_sequences(filename, json_text, write_number_dict=True):
                                           reverse_number_dict)
 
     if write_number_dict is True:
-        write_json_to_file(filename + '.nums',
+        write_json_to_file(os.path.join(out_dirname,
+                                        filename.split(os.sep)[-1] + '.nums'),
                            convert_dict_values(number_dict))
     return token_seq, number_dict
 
 
-def find_json_encodings(filename, json_text, tokens):
-    token_seq, _ = get_json_sequences(filename, json_text,
+def find_json_encodings(out_dirname, filename, json_text, tokens):
+    token_seq, _ = get_json_sequences(out_dirname, filename, json_text,
                                       write_number_dict=True)
     tokens.update(token_seq)
 
 
-def encode_json(filename, json_text, tokens):
+def encode_json(out_dirname, filename, json_text, tokens):
     token_seq, number_dict = \
-        get_json_sequences(filename, json_text, write_number_dict=False)
-    encode_file(filename, token_seq, tokens, number_dict)
+        get_json_sequences(out_dirname, filename, json_text,
+                           write_number_dict=False)
+    return encode_file(out_dirname, filename, token_seq, tokens, number_dict)

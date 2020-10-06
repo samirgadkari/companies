@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import itertools
 
 
 def read_file(fn):
@@ -32,10 +33,12 @@ def write_json_to_file(fn, data):
         f.write(s)
 
 
-def get_filenames(*paths):
-    paths = list(paths)
-    print(f'paths: {paths}')
-    return glob.iglob(os.path.join(paths[0], *paths[1:]))
+def get_filenames(paths):
+    if len(paths) > 1:
+        generators = [glob.iglob(path) for path in paths]
+        return itertools.chain.from_iterable(generators)
+    else:
+        return glob.iglob(paths[0])
 
 
 def ensure_dir_exists(dirname):
@@ -49,3 +52,9 @@ def remove_files(*paths):
     for filename in glob.iglob(os.path.join(paths[0], *paths[1:]),
                                recursive=True):
         os.remove(filename)
+
+
+def create_dirs(dirnames):
+    for dirname in dirnames:
+      if not os.path.exists(dirname):
+          os.makedirs(dirname)

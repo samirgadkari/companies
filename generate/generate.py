@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from decouple import config
 from ml.number import is_number
 from utils.file import get_filenames, read_file, write_file, \
-    get_json_from_file, write_json_to_file, copy_file
+    get_json_from_file, write_json_to_file, copy_file, create_dirs
 from utils.html import replace_names, replace_values, \
     make_html_strings_unique, is_unicode_em_dash, \
     convert_unicode_em_dash, YIELDED_STR, YIELDED_NUM, \
@@ -327,11 +327,14 @@ def generate_random_text(input_filenames, num_output_files):
         json_input_fn = os.sep + os.path.join(*fn_parts[:-1],
                                               fn_prefix + '.json')
         json_generated_output_fn = os.path.join(generated_data_dir(),
+                                                'html',
                                                 str(id) + '.' + fn_type)
         json_expected_output_fn = os.path.join(generated_data_dir(),
+                                               'expected_json',
                                                str(id) + '.expected_json')
 
         input_generated_fn = os.path.join(generated_data_dir(),
+                                          'input',
                                           str(id) + '.input')
         generated_input, json_expected = \
             generate_input(input_fn,
@@ -347,9 +350,13 @@ def generate_random_text(input_filenames, num_output_files):
 
 
 def generate_samples():
+    create_dirs([os.path.join(generated_data_dir(), 'html'),
+                 os.path.join(generated_data_dir(), 'expected_json'),
+                 os.path.join(generated_data_dir(), 'input')])
+
     data_filenames = []
     for samples_dir in [generated_html_json_dir()]:
-        sorted_files = sorted(list(get_filenames(samples_dir, '*')))
+        sorted_files = sorted(list(get_filenames([os.path.join(samples_dir, '*')])))
         sorted_files = list(filter(lambda x: x.endswith('unescaped'),
                                    sorted_files))
         data_filenames.extend(sorted_files)
