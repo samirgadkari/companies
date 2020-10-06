@@ -5,7 +5,7 @@ from utils.environ import tokens_file, cleaned_tags_dir, \
 from ml.tokens import read_tokens_file
 from ml.number import Number, convert_whole_to_fraction
 from utils.file import write_file, remove_files, \
-    get_filenames
+    get_filenames, create_dirs
 
 
 def decode_file(filename, tokens):
@@ -45,7 +45,15 @@ def decode_file(filename, tokens):
             result.append(tokens[str(num)])
             idx += 1
 
-        out_filename = filename[:filename.rfind('.')] + '.decoded'
+        fn_parts = filename.split(os.sep)
+        fn_prefix_index = fn_parts[-1].rfind('.')
+        fn_prefix = fn_parts[-1][:fn_prefix_index]
+
+        dir_name = os.path.join(os.sep.join(filename.split(os.sep)[:-1]),
+                                'decoded')
+        create_dirs([dir_name])
+
+        out_filename = os.path.join(dir_name, fn_prefix + '.decoded')
         write_file(out_filename, ' '.join(result))
 
 
@@ -86,7 +94,10 @@ def decode_all_files(filenames, tokens_path):
 
 
 def decode_training_files():
-    paths = os.path.join(generated_data_dir(), '*.encoded')
+    paths = [os.path.join(generated_data_dir(), 'html',
+                          'encoded', '*.encoded'),
+             os.path.join(generated_data_dir(), 'expected_json',
+                          'encoded', '*.encoded')]
     tokens_path = os.path.join(generated_data_dir(), 'tokens')
     decode_all_files(get_filenames(paths), tokens_path)
 

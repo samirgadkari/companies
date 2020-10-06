@@ -1,3 +1,4 @@
+import os
 from ml.number import NumberSequence
 from ml.tokens import is_number_token
 
@@ -49,18 +50,25 @@ def encode_token(token, tokens, number_dict):
         return result
 
 
-def encode_file(filename, token_seq, tokens, number_dict):
+def encode_file(out_dirname, filename, token_seq, tokens, number_dict):
 
     encoded_str = []
     encoded_values = [encode_token(token, tokens, number_dict)
                       for token in token_seq]
+    max_tokens = 0
     for values in encoded_values:
         if isinstance(values, list):
             for value in values:
                 encoded_str.append(str(value))
+            max_tokens += len(values)
         else:
             encoded_str.append(values)
+            max_tokens += 1
     encoded = ' '.join(encoded_str)
 
-    with open(filename + '.encoded', 'w') as f:
+    with open(os.path.join(out_dirname,
+                           filename.split(os.sep)[-1] + '.encoded'),
+              'w') as f:
         f.write(encoded)
+
+    return max_tokens

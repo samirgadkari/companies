@@ -1,3 +1,4 @@
+import os
 from bs4 import BeautifulSoup, NavigableString
 from utils.html import get_attr_names_values
 from utils.file import write_json_to_file
@@ -7,7 +8,8 @@ from ml.encode_common import convert_dict_values, update_seq_and_number_dict, \
     encode_file
 
 
-def get_html_sequences(filename, top_tag, write_number_dict=True):
+def get_html_sequences(out_dirname, filename, top_tag,
+                       write_number_dict=True):
     token_seq = []
     word_num = Number.START_WORD_NUM.value
     number_dict = {}
@@ -69,21 +71,22 @@ def get_html_sequences(filename, top_tag, write_number_dict=True):
     recurse(top_tag)
 
     if write_number_dict is True:
-        write_json_to_file(filename + '.nums',
+        write_json_to_file(os.path.join(out_dirname,
+                                        filename.split(os.sep)[-1] + '.nums'),
                            convert_dict_values(number_dict))
     return token_seq, number_dict
 
 
-def find_html_table_encodings(filename, table_text, tokens):
+def find_html_table_encodings(out_dirname, filename, table_text, tokens):
     soup = BeautifulSoup(table_text, 'html.parser')
-    file_token_seq, _ = get_html_sequences(filename, soup,
+    file_token_seq, _ = get_html_sequences(out_dirname, filename, soup,
                                            write_number_dict=True)
     tokens.update(file_token_seq)
 
 
-def encode_html_table(filename, table_text, tokens):
+def encode_html_table(out_dirname, filename, table_text, tokens):
 
     soup = BeautifulSoup(table_text, 'html.parser')
-    token_seq, number_dict = get_html_sequences(filename, soup,
+    token_seq, number_dict = get_html_sequences(out_dirname, filename, soup,
                                                 write_number_dict=False)
-    encode_file(filename, token_seq, tokens, number_dict)
+    return encode_file(out_dirname, filename, token_seq, tokens, number_dict)
