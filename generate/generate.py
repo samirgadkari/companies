@@ -234,8 +234,10 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
         mappings[json_name] = randomize_string(json_name)
 
     json_values = list(get_values(json_input))
-    json_values = \
-        list(filter(lambda x: True if is_number(x) else False, json_values))
+
+    # Treat all values (strings and numbers) the same
+    # json_values = \
+    #     list(filter(lambda x: True if is_number(x) else False, json_values))
 
     replace_names(json_names, html_tags_strings, mappings)
 

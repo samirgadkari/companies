@@ -13,8 +13,7 @@ regex_words = re.compile(r'"header"|'
                          r'"name"|'
                          r'"sections"|'
                          r'"values"|'
-                         r'[0-9\(\)\)\,\.\%]*|'
-                         r'\b[a-zA-Z0-9]*\b|'
+                         r'[0-zA-Z-9\(\)\)\,\.\%\ ]*|'
                          r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
 
@@ -58,39 +57,17 @@ def tokenize_one_html_file(filename):
     return get_html_tokens(top_tag)
 
 
-def tokenize_html():
-    tokens = set()
-    paths = [os.path.join(generated_data_dir(), 'html', '*.unescaped')]
-    for filename in get_filenames(paths):
-        tokens.update(tokenize_one_html_file(filename))
-        print(f'len(tokens): {len(tokens)}, filename: {filename}')
-
-    # Remove all length 0 tokens
-    tokens = filter(lambda x: len(x) > 0, tokens)
-    return list(tokens)
-
-
 def tokenize_one_json_file(filename):
     text = read_file(filename)
     return get_json_tokens(text)
 
 
+def tokenize_html():
+    filename = os.path.join(generated_data_dir(), 'html', '0.unescaped')
+    print(tokenize_one_html_file(filename))
+
+
 def tokenize_json():
-
-    tokens = set()
-    paths = [os.path.join(generated_data_dir(),
-                          'expected_json', '*.expected_json')]
-    for filename in get_filenames(paths):
-        tokens.update(tokenize_one_json_file(filename))
-        print(f'len(tokens): {len(tokens)}, filename: {filename}')
-
-    # Remove all length 0 tokens
-    tokens = filter(lambda x: len(x) > 0, tokens)
-    return list(tokens)
-
-
-def tokenize():
-    tokens = tokenize_html()
-    tokens.extend(tokenize_json())
-    tokens_output_path = os.path.join(generated_data_dir(), 'tokens')
-    write_json_to_file(tokens_output_path, tokens)
+    filename = os.path.join(generated_data_dir(),
+                            'expected_json', '0.expected_json')
+    print(tokenize_one_json_file(filename))
