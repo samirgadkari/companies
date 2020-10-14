@@ -29,6 +29,10 @@ NUMBER_OF_OUTPUT_FILES = 10
 # Using the selected length, we generate random data
 # of that length.
 MIN_DATA_SIZE = 5
+MAX_DATA_SIZE = 20
+
+NUM_TOKENS = 1000
+tokens = []
 
 
 class FilterItems():
@@ -156,67 +160,13 @@ def set_of_all_chars_in_data():
     return list(set(all_chars))
 
 
-def randomize_string(s, mappings):
-    all_chars = list(string.ascii_lowercase)
-    all_chars.extend(string.ascii_uppercase)
-    all_chars.extend(' ' * 5)
-
-    # We convert it to a set first to ensure that there are no
-    # duplicate characters
-    all_chars = list(set(all_chars))
-
+def randomize_string(s):
     # Ignore the '-' since it denotes a blank space in a value's location.
     if is_unicode_em_dash(s):
         return convert_unicode_em_dash(s)
 
-    if len(s) > MIN_DATA_SIZE:
-        length = np.random.randint(MIN_DATA_SIZE, len(s) + 1)
-    else:
-        length = MIN_DATA_SIZE
-
-    result = ''
-    while len(result.strip()) == 0:
-        result = ''.join(np.random.choice(all_chars, length))
-
-    return result.strip()
-
-
-def randomize_number(num, mappings):
-    # We want to maintain the 999999999 number to signify
-    # an empty value in the table.
-    if num == '999999999' or \
-       len(num) == 1:
-        return num
-
-    if len(num) == 0:
-        return ""
-
-    all_chars = list(string.digits)
-
-    if len(num) > MIN_DATA_SIZE:
-        length = np.random.randint(MIN_DATA_SIZE, len(num) + 1)
-    else:
-        length = MIN_DATA_SIZE
-
-    s = ''
-    while len(s.strip()) == 0:
-        s = ''.join(np.random.choice(all_chars, length))
-
-    is_negative, is_fraction = np.random.choice([True, False], 2)
-
-    # We limit the fractional part to 2 digits since that is
-    # what we see in the actual tables, and it is easier
-    # to store the numbers after multiplying it by 100
-    # as an integer.
-    if is_negative & is_fraction:
-        return '(0.' + s[:2] + ')'
-    elif is_negative:
-        return '(' + s + ')'
-    elif is_fraction:
-        return '0.' + s[:2]
-    else:
-        # This removes any perceding zeros for the number.
-        return str(int(s))
+    token_idx = np.random.randint(0, len(tokens))
+    return tokens[token_idx]
 
 
 def update_expected_strings(json_, mappings):
@@ -281,7 +231,7 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     mappings = {}  # original string to new string
     for json_name in json_names:
-        mappings[json_name] = randomize_string(json_name, mappings)
+        mappings[json_name] = randomize_string(json_name)
 
     json_values = list(get_values(json_input))
     json_values = \
@@ -293,7 +243,7 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     all_chars = list(string.digits)
     value_mappings = \
-        {value: randomize_number(value, mappings)
+        {value: randomize_string(value)
          for value in json_values}
     mappings.update(value_mappings)
     mappings['-'] = '999999999'
@@ -349,7 +299,22 @@ def generate_random_text(input_filenames, num_output_files):
         # break
 
 
+def create_tokens(filename, num_tokens):
+    global tokens
+
+    lengths = np.random.randint(MIN_DATA_SIZE,
+                                MAX_DATA_SIZE + 1,
+                                num_tokens)
+    all_chars = set_of_all_chars_in_data()
+    tokens = [''.join(np.random.choice(all_chars, length))
+              for length in lengths]
+
+    write_json_to_file(filename, tokens)
+
+
 def generate_samples():
+    create_tokens(os.path.join(generated_data_dir(), 'tokens'), NUM_TOKENS)
+
     create_dirs([os.path.join(generated_data_dir(), 'html'),
                  os.path.join(generated_data_dir(), 'expected_json'),
                  os.path.join(generated_data_dir(), 'input')])
