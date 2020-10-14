@@ -15,6 +15,8 @@ from ml.encode import encode_training_files, encode_validation_files, \
 from ml.decode import decode_training_files, decode_validation_test_files
 from unescape import unescape_all_tables
 from ml.validation_test_split import test_matching_filenames
+from ml.encoder_decoder.preprocessing import tokenize
+
 
 if __name__ == '__main__':
     try:
@@ -43,6 +45,7 @@ if __name__ == '__main__':
         'decode_validation_test_files': decode_validation_test_files,
         'unescape_all_tables': unescape_all_tables,
         'test_matching_filenames': test_matching_filenames,
+        'tokenize': tokenize,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
