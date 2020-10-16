@@ -6,7 +6,6 @@ to create a new HTML file in the output directory.
 import os
 import sys
 import numpy as np
-import string
 from bs4 import BeautifulSoup
 from decouple import config
 from ml.number import is_number
@@ -15,24 +14,12 @@ from utils.file import get_filenames, read_file, write_file, \
 from utils.html import replace_names, replace_values, \
     make_html_strings_unique, is_unicode_em_dash, \
     convert_unicode_em_dash, YIELDED_STR, YIELDED_NUM, \
-    strings_and_values_in_html
+    strings_and_values_in_html, randomize_string
 from utils.environ import text_samples_dir, generated_data_dir, \
     html_samples_dir, generated_html_json_dir
 from ml.clean_tables import remove_comments
 
 NUMBER_OF_OUTPUT_FILES = 10
-
-# If the length of the data is more than this size,
-# we pick a length between this length and the actual
-# data size length. If it is less, then we pick
-# the length of the actual data size.
-# Using the selected length, we generate random data
-# of that length.
-MIN_DATA_SIZE = 5
-MAX_DATA_SIZE = 20
-
-NUM_TOKENS = 1000
-tokens = []
 
 
 class FilterItems():
@@ -138,37 +125,6 @@ def check_hand_created_samples():
     return result
 
 
-def set_of_all_chars_in_data():
-    # all_chars = set()
-    # for input_dirname in [text_samples_dir, html_samples_dir]:
-    #     json_filenames = get_filenames(input_dirname, 'json_input', '*')
-    #     for fn in json_filenames:
-    #         json_table = get_json_from_file(fn)
-    #         names = get_names(json_table)
-    #         for name in names:
-    #             all_chars.update(list(name))
-    #         values = get_values(json_table)
-    #         for value in values:
-    #             all_chars.update(list(value))
-    all_chars = list(string.ascii_lowercase)
-    all_chars.extend(string.ascii_uppercase)
-    all_chars.extend(string.digits)
-    all_chars.extend(' ' * 5)
-
-    # We convert it to a set first to ensure that there are no
-    # duplicate characters
-    return list(set(all_chars))
-
-
-def randomize_string(s):
-    # Ignore the '-' since it denotes a blank space in a value's location.
-    if is_unicode_em_dash(s):
-        return convert_unicode_em_dash(s)
-
-    token_idx = np.random.randint(0, len(tokens))
-    return tokens[token_idx]
-
-
 def update_expected_strings(json_, mappings):
     map_keys = list(mappings.keys())
     if isinstance(json_, dict):
@@ -196,7 +152,34 @@ def update_expected_strings(json_, mappings):
     raise ValueError('Unexpected type in JSON dictionary')
 
 
-def generate_input(input_fn, fn_type, json_input_fn, all_chars):
+def numeric_tokens(h_tokens):
+    return list(map(lambda x: x[1], h_tokens))
+
+
+def check_missing_tokens(h_tokens, j_tokens):
+
+    # HTML tokens contain tuples (number value text, cleaned number value text).
+    # We select just the cleaned number value text here and compare it to the
+    # cleaned JSON number tokens.
+    h_tokens = numeric_tokens(h_tokens)
+
+    html_tokens = set(h_tokens)
+    json_tokens = set(j_tokens)
+    html_minus_json_len = len(html_tokens - json_tokens)
+    json_minus_html_len = len(json_tokens - html_tokens)
+    assert(html_minus_json_len == 0 and json_minus_html_len == 0)
+
+    # if html_minus_json_len > json_minus_html_len:
+    #     print(f'set(HTML) - set(JSON): {html_tokens - json_tokens}\n\n')
+    # else:
+    #     print(f'set(JSON) - set(HTML): {json_tokens - html_tokens}\n\n')
+
+    # print(f'h_tokens: {h_tokens}\n\n')
+    # print(f'j_tokens: {j_tokens}')
+
+
+def generate_input(input_fn, fn_type, json_input_fn):
+
     def separate_values_strings(top_tag):
         filter_str = lambda x: True if x[0] == YIELDED_STR else False
         map_str = lambda x: (x[1], x[2])
@@ -235,15 +218,13 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
     json_values = list(get_values(json_input))
 
-    # Treat all values (strings and numbers) the same
-    # json_values = \
-    #     list(filter(lambda x: True if is_number(x) else False, json_values))
+    json_values = \
+        list(filter(lambda x: True if is_number(x) else False, json_values))
 
     replace_names(json_names, html_tags_strings, mappings)
 
     # print(f'mappings: {mappings}\n\n')
 
-    all_chars = list(string.digits)
     value_mappings = \
         {value: randomize_string(value)
          for value in json_values}
@@ -251,8 +232,13 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
     mappings['-'] = '999999999'
 
     # print(f'mappings: {mappings}')
+    # check_missing_tokens(html_tags_values, json_values)
+    number_tokens = list(numeric_tokens(html_tags_values))
+    for token in number_tokens:
+        mappings[token] = randomize_string(token)
 
     replace_values(json_values, html_tags_values, mappings)
+
     json_expected = update_expected_strings(json_input, mappings)
 
     return str(top_tag), json_expected
@@ -260,9 +246,7 @@ def generate_input(input_fn, fn_type, json_input_fn, all_chars):
 
 def generate_random_text(input_filenames, num_output_files):
     print('Getting set of all chars in data', end='')
-    all_chars = set_of_all_chars_in_data()
     print(' ... done')
-    print(f'all_chars: {all_chars}')
 
     for id in range(num_output_files):
         input_fn = np.random.choice(input_filenames)
@@ -288,11 +272,11 @@ def generate_random_text(input_filenames, num_output_files):
         input_generated_fn = os.path.join(generated_data_dir(),
                                           'input',
                                           str(id) + '.input')
+
         generated_input, json_expected = \
             generate_input(input_fn,
                            fn_type,
-                           json_input_fn,
-                           all_chars)
+                           json_input_fn)
 
         write_file(json_generated_output_fn, generated_input)
         write_json_to_file(json_expected_output_fn, json_expected)
@@ -301,21 +285,7 @@ def generate_random_text(input_filenames, num_output_files):
         # break
 
 
-def create_tokens(filename, num_tokens):
-    global tokens
-
-    lengths = np.random.randint(MIN_DATA_SIZE,
-                                MAX_DATA_SIZE + 1,
-                                num_tokens)
-    all_chars = set_of_all_chars_in_data()
-    tokens = [''.join(np.random.choice(all_chars, length))
-              for length in lengths]
-
-    write_json_to_file(filename, tokens)
-
-
 def generate_samples():
-    create_tokens(os.path.join(generated_data_dir(), 'tokens'), NUM_TOKENS)
 
     create_dirs([os.path.join(generated_data_dir(), 'html'),
                  os.path.join(generated_data_dir(), 'expected_json'),
