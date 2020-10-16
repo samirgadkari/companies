@@ -7,6 +7,9 @@ from utils.environ import cleaned_tags_dir, generated_data_dir
 from utils.file import remove_files, get_json_from_file, \
     write_json_to_file
 
+tokenize_attr_names = ['rowspan', 'colspan', 'style', 'align', 'width']
+tokenize_attr_subnames = ['text-align']
+
 
 class Tokens():
 
@@ -40,13 +43,18 @@ class Tokens():
 
 
     def special_tokens(self):
-        return ['-']
+        # Numbers from 0 through 100 are used for percentages/widths.
+        tokens = list(map(str, np.arange(101)))
+        tokens.append('-')
+        return tokens
 
 
     def html_structure_tokens(self):
         html_tokens = list(filter(lambda x: x is not None, tag_actions.keys()))
         html_end_tokens = ['end_' + x for x in html_tokens]
         html_tokens.extend(html_end_tokens)
+        html_tokens.extend(tokenize_attr_names)
+        html_tokens.extend(tokenize_attr_subnames)
         return html_tokens
 
 
