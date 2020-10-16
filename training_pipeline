@@ -41,17 +41,17 @@ generate_samples()
 
 # generated-data/number.unescaped, number.expected_json ->
 #   generated-data/tokens, generated-data/training_filenames
-print(f'-------------- FIND TRAINING ENCODINGS ---------------')
-find_training_encodings()
+# print(f'-------------- FIND TRAINING ENCODINGS ---------------')
+# find_training_encodings()
 
 # generated-data/number.unescaped, number.expected_json,
 #   generated-data/tokens, generated-data/training_filenames ->
 #   generated-data/number.encoded
-print(f'-------------- ENCODE TRAINING FILES ---------------')
-encode_training_files()
+# print(f'-------------- ENCODE TRAINING FILES ---------------')
+# encode_training_files()
 
 # generated-data/number.encoded, generated-data/tokens ->
 #   generated-data/number.decoded
-print(f'-------------- DECODE TRAINING FILES ---------------')
-decode_training_files()
+# print(f'-------------- DECODE TRAINING FILES ---------------')
+# decode_training_files()
 
