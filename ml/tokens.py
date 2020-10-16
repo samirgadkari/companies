@@ -34,7 +34,6 @@ class Tokens():
         all_chars = list(string.ascii_lowercase)
         all_chars.extend(string.ascii_uppercase)
         all_chars.extend(string.digits)
-        # all_chars.extend(' ' * 5)
 
         # We convert it to a set first to ensure that there are no
         # duplicate characters
@@ -51,6 +50,7 @@ class Tokens():
 
     def html_structure_tokens(self):
         html_tokens = list(filter(lambda x: x is not None, tag_actions.keys()))
+        html_tokens.append('document')
         html_end_tokens = ['end_' + x for x in html_tokens]
         html_tokens.extend(html_end_tokens)
         html_tokens.extend(tokenize_attr_names)
@@ -59,7 +59,7 @@ class Tokens():
 
 
     def json_structure_tokens(self):
-        json_tokens = list('\{\}\[\]\:\"\,')
+        json_tokens = list('{}[]:",')
         json_tokens.extend(['name', 'values', 'header', 'table_data'])
         return json_tokens
 

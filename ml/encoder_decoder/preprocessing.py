@@ -5,6 +5,8 @@ from generate.generate import generate_input, randomize_string
 from utils.text import split_using_punctuation
 from bs4 import BeautifulSoup, NavigableString
 from utils.html import get_attr_names_values
+from utils.file import get_filenames, read_file, write_file, create_dirs
+from utils.environ import generated_data_dir
 # from utils.environ import extracted_tables_dir, generated_data_dir
 
 regex_words = re.compile(
@@ -21,7 +23,11 @@ def get_html_tokens(tag):
     if isinstance(tag, NavigableString):
         token_seq.append(str(tag.string).strip())
     else:
-        token_seq.append(tag.name.strip())
+        tag_name = tag.name.strip()
+        if '[' in tag_name and ']' in tag_name:
+            tag_name = tag_name.replace('[', '').replace(']', '')
+
+        token_seq.append(tag_name)
 
         attr_names_values = []
         for name_or_value in get_attr_names_values(tag):
@@ -32,7 +38,7 @@ def get_html_tokens(tag):
 
         for child in tag.children:
             token_seq.extend(get_html_tokens(child))
-        token_seq.append('end_' + tag.name.strip())
+        token_seq.append('end_' + tag_name)
 
     return token_seq
 
@@ -51,29 +57,58 @@ def get_json_tokens(json_text):
     return token_seq
 
 
-def tokenize_html_json(html_fn, json_fn):
+def tokenize_html_json(html_fn, json_fn, generate=False):
 
-    generated_input, json_expected = \
-        generate_input(html_fn, 'unescaped', json_fn)
+    # Very likely that we don't need to call generate,
+    # but it is here if required.
+    if generate is True:
+        html_data, json_data = \
+            generate_input(html_fn, 'unescaped', json_fn)
+    else:
+        html_data = read_file(html_fn).replace('\n', '')
+        json_data = read_file(json_fn).replace('\n', '')
 
     # Now process those files to get the tokens
-    top_tag = BeautifulSoup(generated_input, 'html.parser')
+    top_tag = BeautifulSoup(html_data, 'html.parser')
     html_tokens = get_html_tokens(top_tag)
 
-    json_expected = json.dumps(json_expected)
+    json_expected = json.dumps(json_data)
     json_tokens = get_json_tokens(json_expected)
-
-    print(f'html_token_len: {len(html_tokens)}, html_tokens: {html_tokens}\n\n')
-    print(f'json_token_len: {len(json_tokens)}, json_tokens: {json_tokens}\n\n')
 
     return html_tokens, json_tokens
 
 
-def tokenize():
-    html_fn = '/Volumes/Seagate/generated-html-json/0001099932_centra_financial_holdings_inc__10-k__2008-01-01_2008-12-31_10-k__tables-extracted_split-tables__26.cleaned'
-    json_fn = '/Volumes/Seagate/generated-html-json/0001099932_centra_financial_holdings_inc__10-k__2008-01-01_2008-12-31_10-k__tables-extracted_split-tables__26.json'
+def tokenize_training_set():
 
-    randomized_html_tokens, randomized_json_tokens = \
-        tokenize_html_json(html_fn, json_fn)
-    # print(f'randomized_html_tokens: {randomized_html_tokens}\n\n')
-    # print(f'randomized_json_tokens: {randomized_json_tokens}\n\n')
+    base_path = os.path.join(generated_data_dir())
+    out_dirname_html = \
+        os.path.join(base_path, 'html', 'tokenized')
+    out_dirname_json = \
+        os.path.join(base_path, 'expected_json', 'tokenized')
+    create_dirs([out_dirname_json, out_dirname_html])
+
+    combined_fns = zip(list(get_filenames([os.path.join(base_path,
+                                                        'html', '*.unescaped')])),
+                       list(get_filenames([os.path.join(base_path,
+                                                       'expected_json',
+                                                        '*.expected_json')])))
+
+    # print(f'combined_fns: {(list(combined_fns))[:2]}')
+
+    for html_fn, json_fn in combined_fns:
+        # html_fn = '/Volumes/Seagate/generated-data/html/0.unescaped'
+        # json_fn = '/Volumes/Seagate/generated-data/expected_json/0.expected_json'
+
+        print(f'html_fn: {html_fn}')
+        print(f'json_fn: {json_fn}')
+        html_tokens, json_tokens = tokenize_html_json(html_fn, json_fn)
+        html_tokens = ' '.join(html_tokens).replace("'", "")
+        json_tokens = ' '.join(json_tokens).replace("'", "")
+
+        fn = html_fn.split(os.sep)[-1].split('.')[0] + '.tokenized'
+        write_file(os.path.join(out_dirname_html, fn), html_tokens)
+        fn = json_fn.split(os.sep)[-1].split('.')[0] + '.tokenized'
+        write_file(os.path.join(out_dirname_json, fn), json_tokens)
+
+        # print(f'randomized_html_tokens: {html_tokens}\n\n')
+        # print(f'randomized_json_tokens: {json_tokens}\n\n')
