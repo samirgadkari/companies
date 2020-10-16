@@ -1,7 +1,9 @@
 import re
 import string
+import numpy as np
 from bs4 import BeautifulSoup, NavigableString
 from ml.number import is_number, YEARS_RANGE
+from ml.tokens import Tokens
 
 regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
@@ -358,6 +360,19 @@ def make_html_strings_unique(html_data, names):
             result.append(first_name)
 
     return str(top_tag), result
+
+
+def randomize_string(s):
+
+    tokens = Tokens().tokens
+
+    # Ignore the '-' since it denotes a blank space in a value's location.
+    if is_unicode_em_dash(s):
+        return convert_unicode_em_dash(s)
+
+    # print(f'In html.py num tokens: {len(tokens)}')
+    token_idx = np.random.randint(0, high=len(tokens))
+    return tokens[token_idx]
 
 
 # def replace_named_or_numeric(html_data):
