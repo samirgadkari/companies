@@ -12,7 +12,7 @@ regex_words = re.compile(
     r'table_data|name|sections|values|'
     r'end\_[a-z]+|'
     r'\b[a-zA-Z0-9]*\b|'
-    '[\{\}\[\]\:\"\,]', re.MULTILINE)
+    r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
 
 def get_html_tokens(tag):
