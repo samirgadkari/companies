@@ -62,15 +62,16 @@ class Tokens():
                                     self.MAX_DATA_SIZE + 1,
                                     self.NUM_TOKENS)
 
-        all_tokens = [''.join(np.random.choice(self.all_chars, length))
-                      for length in lengths]
-
+        all_tokens = ['<sos>', '<pad>', '<eos>']
         all_tokens.extend(self.special_tokens())
         all_tokens.extend(self.html_structure_tokens())
         all_tokens.extend(self.json_structure_tokens())
 
+        all_tokens.extend([''.join(np.random.choice(self.all_chars, length))
+                           for length in lengths])
+
         all_tokens = [x.strip() for x in all_tokens]
-        write_json_to_file(self.tokens_fn, list(set(all_tokens)))
+        write_json_to_file(self.tokens_fn, all_tokens)
 
         return all_tokens
 
