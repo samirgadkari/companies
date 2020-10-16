@@ -50,6 +50,7 @@ class Tokens():
 
     def html_structure_tokens(self):
         html_tokens = list(filter(lambda x: x is not None, tag_actions.keys()))
+        html_tokens.append('document')
         html_end_tokens = ['end_' + x for x in html_tokens]
         html_tokens.extend(html_end_tokens)
         html_tokens.extend(tokenize_attr_names)
