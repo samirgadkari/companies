@@ -34,7 +34,6 @@ class Tokens():
         all_chars = list(string.ascii_lowercase)
         all_chars.extend(string.ascii_uppercase)
         all_chars.extend(string.digits)
-        # all_chars.extend(' ' * 5)
 
         # We convert it to a set first to ensure that there are no
         # duplicate characters
@@ -59,7 +58,7 @@ class Tokens():
 
 
     def json_structure_tokens(self):
-        json_tokens = list('\{\}\[\]\:\"\,')
+        json_tokens = list('{}[]:",')
         json_tokens.extend(['name', 'values', 'header', 'table_data'])
         return json_tokens
 
