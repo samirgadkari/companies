@@ -12,7 +12,7 @@ regex_words = re.compile(
     r'table_data|name|sections|values|'
     r'end\_[a-z]+|'
     r'\b[a-zA-Z0-9]*\b|'
-    '[\{\}\[\]\:\"\,]', re.MULTILINE)
+    r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
 
 def get_html_tokens(tag):
@@ -27,6 +27,8 @@ def get_html_tokens(tag):
         for name_or_value in get_attr_names_values(tag):
             for x in name_or_value.split():
                 attr_names_values.extend(split_using_punctuation(x))
+                # print(f'x: {x} split x: {split_using_punctuation(x)}')
+        token_seq.extend(attr_names_values)
 
         for child in tag.children:
             token_seq.extend(get_html_tokens(child))

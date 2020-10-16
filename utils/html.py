@@ -3,7 +3,7 @@ import string
 import numpy as np
 from bs4 import BeautifulSoup, NavigableString
 from ml.number import is_number, YEARS_RANGE
-from ml.tokens import Tokens
+from ml.tokens import Tokens, tokenize_attr_names, tokenize_attr_subnames
 
 regex_html_tag = re.compile(r'<[^>]+>')
 regex_html_tag_or_data = re.compile(r'(<[^]]+>)|([^<]+)')
@@ -70,10 +70,10 @@ def get_attr_subnames_and_values(attr_name, attr_values):
     def invalid_subname(part):
         # Not sure if this will grow, as we see more cases. This function
         # ensures we have the scaffolding to add valid parts
-        valid_subname = ['text-align']
-        for v in valid_subname:
+        valid_subnames = tokenize_attr_subnames
+        for v in valid_subnames:
             if part.strip().startswith(v):
-                return not True  # Function invalid_subname returns false
+                return not True  # Function invalid_subnames returns false
         return True  # Function invalid_subname returns true
 
     attr_values = remove_extra_characters(attr_values)
@@ -103,7 +103,8 @@ def get_attr_names_values(tag):
     if isinstance(tag, NavigableString):
         return attr_names_values
     for attr_name, attr_values in tag.attrs.items():
-        if attr_name not in ['rowspan', 'colspan', 'style']:
+
+        if attr_name not in tokenize_attr_names:
             continue
 
         try:
