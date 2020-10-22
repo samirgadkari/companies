@@ -112,3 +112,7 @@ def tokenize_training_set():
 
         # print(f'randomized_html_tokens: {html_tokens}\n\n')
         # print(f'randomized_json_tokens: {json_tokens}\n\n')
+
+
+if __name__ == '__main__':
+    tokenize_training_set()
