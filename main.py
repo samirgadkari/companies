@@ -16,6 +16,8 @@ from ml.decode import decode_training_files, decode_validation_test_files
 from unescape import unescape_all_tables
 from ml.validation_test_split import test_matching_filenames
 from ml.encoder_decoder.preprocessing import tokenize_training_set
+from ml.encoder_decoder.train_set_max_token_len import train_set_max_token_len
+from ml.encoder_decoder.test_set_max_token_len import test_set_max_token_len
 
 
 if __name__ == '__main__':
@@ -46,6 +48,8 @@ if __name__ == '__main__':
         'unescape_all_tables': unescape_all_tables,
         'test_matching_filenames': test_matching_filenames,
         'tokenize_training_set': tokenize_training_set,
+        'train_set_max_token_len': train_set_max_token_len,
+        'test_set_max_token_len': test_set_max_token_len,
     }
     func = switcher.get(function_, lambda: "nothing")
     if len(sys.argv) > 2:
