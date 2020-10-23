@@ -39,3 +39,7 @@ def data_dir():
 
 def tokens_file():
     return config('TOKENS_FILE')
+
+
+def tables_extracted_split_tables_dir():
+    return config('TABLES_EXTRACTED_SPLIT_TABLES_DIR')
