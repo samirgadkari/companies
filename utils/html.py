@@ -302,10 +302,11 @@ def replace_names(names, html_tags_strings, mappings):
     number_html_names = len(html_tags_strings)
     if len(names) != len(html_tags_strings):
         raise ValueError(f'Number of names in JSON file differs from '
-                         f' number of names in HTML file '
+                         f' number of names in HTML file.'
                          f'JSON: {number_json_names} HTML: {number_html_names}\n'
                          f'names:\n {names}\n'
-                         f'html_tags_strings:\n{html_tags_strings}')
+                         f'html_tags_strings:\n{html_tags_strings}\n'
+                         f'^^^^^^^ ERROR ^^^^^^^')
 
     for json_string, html_tag, html_string in \
           json_and_html_tuples(names, html_tags_strings):
