@@ -19,7 +19,7 @@ from utils.environ import text_samples_dir, generated_data_dir, \
     html_samples_dir, generated_html_json_dir
 from ml.clean_tables import remove_comments
 
-NUMBER_OF_OUTPUT_FILES = 10
+NUMBER_OF_OUTPUT_FILES = 20
 
 
 class FilterItems():
