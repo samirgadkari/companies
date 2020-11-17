@@ -1,12 +1,13 @@
 import os
 import re
 import json
+import numpy as np
 from generate.generate import generate_input, randomize_string
 from utils.text import split_using_punctuation
 from bs4 import BeautifulSoup, NavigableString
 from utils.html import get_attr_names_values
 from utils.file import get_filenames, read_file, write_file, create_dirs
-from utils.environ import generated_data_dir
+from utils.environ import generated_data_dir, generated_html_json_dir
 # from utils.environ import extracted_tables_dir, generated_data_dir
 
 regex_words = re.compile(
@@ -15,6 +16,12 @@ regex_words = re.compile(
     r'end\_[a-z]+|'
     r'\b[a-zA-Z0-9]*\b|'
     r'[\{\}\[\]\:\"\,]', re.MULTILINE)
+
+# Generate files with randomized text values if True,
+# If False, the files we're using are already randomized.
+generate = False
+NUMBER_OF_OUTPUTS = 20  # Randomly sample input files to generate
+                        # this number of output strings.
 
 
 def get_html_tokens(tag):
@@ -84,13 +91,32 @@ def tokenize_html_json(html_fn, json_fn, generate=False):
 
 def tokenize_training_set():
 
-    base_path = os.path.join(generated_data_dir())
+    output_path = os.path.join(generated_data_dir())
+    if generate is True:
+        input_fns = list(get_filenames([os.path.join(generated_html_json_dir(),
+                                                    '*.unescaped')]))
+        html_fns, json_fns = [], []
+        for id in range(NUMBER_OF_OUTPUTS):
+            html_fn = np.random.choice(input_fns)
 
-    combined_fns = zip(list(get_filenames([os.path.join(base_path,
-                                                        'html', '*.unescaped')])),
-                       list(get_filenames([os.path.join(base_path,
-                                                       'expected_json',
-                                                        '*.expected_json')])))
+            fn_parts = html_fn.split(os.sep)
+            fn_name = fn_parts[-1].split('.')
+            fn_prefix, fn_type = fn_name[0], fn_name[1]
+
+            json_fn = os.sep + os.path.join(*fn_parts[:-1],
+                                            fn_prefix + '.json')
+            html_fns.append(html_fn)
+            json_fns.append(json_fn)
+
+        combined_fns = zip(html_fns, json_fns)
+    else:
+        combined_fns = zip(
+            list(get_filenames([os.path.join(output_path,
+                                             'html',
+                                             '*.unescaped')])),
+            list(get_filenames([os.path.join(output_path,
+                                             'expected_json',
+                                             '*.expected_json')])))
 
     # print(f'combined_fns: {(list(combined_fns))[:2]}')
 
@@ -101,7 +127,7 @@ def tokenize_training_set():
 
         print(f'html_fn: {html_fn}')
         print(f'json_fn: {json_fn}')
-        html_tokens, json_tokens = tokenize_html_json(html_fn, json_fn, generate=False)
+        html_tokens, json_tokens = tokenize_html_json(html_fn, json_fn, generate=generate)
         html_tokens = ' '.join(html_tokens).replace("'", "")
 
         json_tokens = ' '.join(json_tokens).replace("'", "")
@@ -111,7 +137,7 @@ def tokenize_training_set():
         combined_tokens.append(html_fn + '^' + html_tokens + \
             '^' + json_fn + '^' + json_tokens)
 
-    write_file(os.path.join(base_path, 'tokenized'),
+    write_file(os.path.join(output_path, 'tokenized'),
                '\n'.join(combined_tokens))
 
 
