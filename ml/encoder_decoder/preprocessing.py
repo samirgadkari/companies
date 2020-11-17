@@ -81,11 +81,6 @@ def tokenize_html_json(html_fn, json_fn, generate=False):
 def tokenize_training_set():
 
     base_path = os.path.join(generated_data_dir())
-    out_dirname_html = \
-        os.path.join(base_path, 'html', 'tokenized')
-    out_dirname_json = \
-        os.path.join(base_path, 'expected_json', 'tokenized')
-    create_dirs([out_dirname_json, out_dirname_html])
 
     combined_fns = zip(list(get_filenames([os.path.join(base_path,
                                                         'html', '*.unescaped')])),
