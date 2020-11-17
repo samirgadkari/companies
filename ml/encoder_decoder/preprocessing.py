@@ -61,6 +61,10 @@ def tokenize_html_json(html_fn, json_fn, generate=False):
 
     # Very likely that we don't need to call generate,
     # but it is here if required.
+    # You should only call generate on the original files,
+    # not on the files that have randomized strings. If we do,
+    # the generate code cannot tell if an string is a number (value),
+    # and which string is just a string.
     if generate is True:
         html_data, json_data = \
             generate_input(html_fn, 'unescaped', json_fn)
@@ -90,23 +94,25 @@ def tokenize_training_set():
 
     # print(f'combined_fns: {(list(combined_fns))[:2]}')
 
+    combined_tokens = []
     for html_fn, json_fn in combined_fns:
         # html_fn = '/Volumes/Seagate/generated-data/html/0.unescaped'
         # json_fn = '/Volumes/Seagate/generated-data/expected_json/0.expected_json'
 
         print(f'html_fn: {html_fn}')
         print(f'json_fn: {json_fn}')
-        html_tokens, json_tokens = tokenize_html_json(html_fn, json_fn)
+        html_tokens, json_tokens = tokenize_html_json(html_fn, json_fn, generate=False)
         html_tokens = ' '.join(html_tokens).replace("'", "")
+
         json_tokens = ' '.join(json_tokens).replace("'", "")
+        # Remove json string's quotes at the beginning and end
+        json_tokens = json_tokens[2:len(json_tokens) - 2]
 
-        fn = html_fn.split(os.sep)[-1].split('.')[0] + '.tokenized'
-        write_file(os.path.join(out_dirname_html, fn), html_tokens)
-        fn = json_fn.split(os.sep)[-1].split('.')[0] + '.tokenized'
-        write_file(os.path.join(out_dirname_json, fn), json_tokens)
+        combined_tokens.append(html_fn + '^' + html_tokens + \
+            '^' + json_fn + '^' + json_tokens)
 
-        # print(f'randomized_html_tokens: {html_tokens}\n\n')
-        # print(f'randomized_json_tokens: {json_tokens}\n\n')
+    write_file(os.path.join(base_path, 'tokenized'),
+               '\n'.join(combined_tokens))
 
 
 if __name__ == '__main__':
