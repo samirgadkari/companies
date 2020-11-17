@@ -6,14 +6,15 @@ from generate.generate import generate_input, randomize_string
 from utils.text import split_using_punctuation
 from bs4 import BeautifulSoup, NavigableString
 from utils.html import get_attr_names_values
-from utils.file import get_filenames, read_file, write_file, create_dirs
+from utils.file import get_filenames, read_file, write_file, create_dirs, \
+    write_json_to_file
 from utils.environ import generated_data_dir, generated_html_json_dir
 # from utils.environ import extracted_tables_dir, generated_data_dir
 
 regex_words = re.compile(
     r'header|table_number_interpretation|table_years_months|'
     r'table_data|name|sections|values|'
-    r'end\_[a-z]+|'
+    r'end\_[a-z0-9]+|'
     r'\b[a-zA-Z0-9]*\b|'
     r'[\{\}\[\]\:\"\,]', re.MULTILINE)
 
@@ -91,6 +92,10 @@ def tokenize_html_json(html_fn, json_fn, generate=False):
 
 def tokenize_training_set():
 
+    def update_max_token_len(html, json, max_len):
+        html_len, json_len = len(html.split()), len(json.split())
+        return max(html_len, max(json_len, max_len))
+
     output_path = os.path.join(generated_data_dir())
     if generate is True:
         input_fns = list(get_filenames([os.path.join(generated_html_json_dir(),
@@ -121,6 +126,8 @@ def tokenize_training_set():
     # print(f'combined_fns: {(list(combined_fns))[:2]}')
 
     combined_tokens = []
+    tokens = set()
+    max_token_len = 0
     for html_fn, json_fn in combined_fns:
         # html_fn = '/Volumes/Seagate/generated-data/html/0.unescaped'
         # json_fn = '/Volumes/Seagate/generated-data/expected_json/0.expected_json'
@@ -134,12 +141,27 @@ def tokenize_training_set():
         # Remove json string's quotes at the beginning and end
         json_tokens = json_tokens[2:len(json_tokens) - 2]
 
+        max_token_len = update_max_token_len(html_tokens, json_tokens,
+                                             max_token_len)
+
+        tokens.update(html_tokens.split())
+        tokens.update(json_tokens.split())
+
         combined_tokens.append(html_fn + '^' + html_tokens + \
             '^' + json_fn + '^' + json_tokens)
 
     write_file(os.path.join(output_path, 'tokenized'),
                '\n'.join(combined_tokens))
 
+    tokens = sorted(list(tokens))
+    tokens.reverse()
+    tokens.extend(['<sos>', '<pad>', '<eos>'])
+    tokens.reverse()
+
+    write_json_to_file(os.path.join(output_path, 'tokens'), tokens)
+
+    with open(os.path.join(output_path, 'max_token_len'), 'w') as f:
+        f.write(f'max_token_len: {max_token_len}')
 
 if __name__ == '__main__':
     tokenize_training_set()
