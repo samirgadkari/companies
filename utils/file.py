@@ -55,6 +55,10 @@ def remove_files(*paths):
 
 
 def create_dirs(dirnames):
-    for dirname in dirnames:
-      if not os.path.exists(dirname):
-          os.makedirs(dirname)
+    if isinstance(dirnames, list):
+        for dirname in dirnames:
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+    else:
+        if not os.path.exists(dirnames):
+            os.makedirs(dirnames)

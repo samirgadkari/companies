@@ -43,3 +43,7 @@ def tokens_file():
 
 def tables_extracted_split_tables_dir():
     return config('TABLES_EXTRACTED_SPLIT_TABLES_DIR')
+
+
+def tokenized_dir():
+    return config('TOKENIZED_DIR')

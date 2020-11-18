@@ -8,7 +8,8 @@ from bs4 import BeautifulSoup, NavigableString
 from utils.html import get_attr_names_values
 from utils.file import get_filenames, read_file, write_file, create_dirs, \
     write_json_to_file
-from utils.environ import generated_data_dir, generated_html_json_dir
+from utils.environ import generated_data_dir, generated_html_json_dir, \
+    tokenized_dir
 # from utils.environ import extracted_tables_dir, generated_data_dir
 
 regex_words = re.compile(
@@ -24,6 +25,9 @@ generate = False
 NUMBER_OF_OUTPUTS = 20  # Randomly sample input files to generate
                         # this number of output strings.
 
+SINGLE_FILE = 0
+LIST_FILES = 1
+UPDATE_TYPE = LIST_FILES
 
 def get_html_tokens(tag):
     token_seq = []
@@ -96,7 +100,10 @@ def tokenize_training_set():
         html_len, json_len = len(html.split()), len(json.split())
         return max(html_len, max(json_len, max_len))
 
-    output_path = os.path.join(generated_data_dir())
+    input_path = generated_data_dir()
+    output_path = tokenized_dir()
+    create_dirs(output_path)
+
     if generate is True:
         input_fns = list(get_filenames([os.path.join(generated_html_json_dir(),
                                                     '*.unescaped')]))
@@ -116,18 +123,48 @@ def tokenize_training_set():
         combined_fns = zip(html_fns, json_fns)
     else:
         combined_fns = zip(
-            list(get_filenames([os.path.join(output_path,
+            list(get_filenames([os.path.join(input_path,
                                              'html',
                                              '*.unescaped')])),
-            list(get_filenames([os.path.join(output_path,
+            list(get_filenames([os.path.join(input_path,
                                              'expected_json',
                                              '*.expected_json')])))
 
     # print(f'combined_fns: {(list(combined_fns))[:2]}')
 
-    combined_tokens = []
+    update_tokens = []
+    separate_files = []
     tokens = set()
     max_token_len = 0
+
+    def file_update(html_fn, html_tokens,
+                    json_fn, json_tokens,
+                    update_type=SINGLE_FILE):
+        if update_type == SINGLE_FILE:
+            update_tokens.append(html_fn + '^' + html_tokens + \
+                '^' + json_fn + '^' + json_tokens)
+        else:  # multiple files created - one for each set
+               # of (html, json) input files
+            update_tokens.append((html_fn, json_fn))
+            create_dirs(os.path.join(output_path, 'separate_files'))
+
+            output_html_fn = os.path.join(output_path, 'separate_files',
+                                          html_fn.split(os.sep)[-1] + '.tokenized')
+            output_json_fn = os.path.join(output_path, 'separate_files',
+                                          json_fn.split(os.sep)[-1] + '.tokenized')
+            separate_files.append(output_html_fn + '^' + output_json_fn)
+            write_file(output_html_fn, html_tokens)
+            write_file(output_json_fn, json_tokens)
+
+    def file_flush(update_type):
+        if update_type == SINGLE_FILE:
+            write_file(os.path.join(output_path, 'tokenized'),
+                       '\n'.join(update_tokens))
+        else:
+            write_file(os.path.join(output_path, 'separate_files',
+                                    'file_list'),
+                       '\n'.join(separate_files))
+
     for html_fn, json_fn in combined_fns:
         # html_fn = '/Volumes/Seagate/generated-data/html/0.unescaped'
         # json_fn = '/Volumes/Seagate/generated-data/expected_json/0.expected_json'
@@ -147,12 +184,10 @@ def tokenize_training_set():
         tokens.update(html_tokens.split())
         tokens.update(json_tokens.split())
 
-        combined_tokens.append(html_fn + '^' + html_tokens + \
-            '^' + json_fn + '^' + json_tokens)
+        file_update(html_fn, html_tokens, json_fn, json_tokens,
+                    update_type=UPDATE_TYPE)
 
-    write_file(os.path.join(output_path, 'tokenized'),
-               '\n'.join(combined_tokens))
-
+    file_flush(update_type=UPDATE_TYPE)
     tokens = sorted(list(tokens))
     tokens.reverse()
     tokens.extend(['<sos>', '<pad>', '<eos>'])
