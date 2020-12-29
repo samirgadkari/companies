@@ -26,3 +26,5 @@ Web scrape company 10K filings from the SEC for the banking industry using Selen
 ## TODO: Write code to segment the companies
   - Maybe using t-SNE as it creates larger gaps between clusters.
   - Maybe we need to precede t-SNE with PCA dimension reduction. This will make t-SNE run faster. Not sure if this is really needed.
+  - LLE (Locally Linear Embedding) should also be tried since it is used to map data that is along a manifold to non-manifold space.
+  - Also could try DBSCAN or Hierarchical DBSCAN
