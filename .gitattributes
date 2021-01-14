@@ -1,1 +1,11 @@
 *.py linguist-language=Python
+
+# *.ipynb files are not generated fully automatically -
+# you have to write the code in a Jupyter notebook to
+# have it generate the HTML file. The problem is that
+# in this project there is so much more python code
+# and still the number of lines of generated
+# Jupyter Notebook code is larger. This causes the
+# project to be labelled a Jupyter Notebook project -
+# which is not correct.
+*.ipynb linguist-generated
